@@ -11,35 +11,17 @@ In this lesson, you'll build a simple cross-chain messaging application using La
 - Tracks message history and counts
 - Demonstrates the complete OApp lifecycle
 
+**There is an example contract located** - @/src/contracts/examples/Oapp/ExampleSimpleMessenger.sol
+
+Should you require the complete contract example
+
 ## Prerequisites
 
 Before starting, ensure you have:
 
-- Node.js v22 (LTS) installed
-- A wallet with testnet tokens (Sepolia ETH, Arbitrum Sepolia ETH, etc.)
-- Your private key in `.env` file
+- run pnpm install
+- Setup the .env
 - RPC endpoints configured (we're using Alchemy)
-
-## Project Setup
-
-If you haven't already, initialize your environment:
-
-```bash
-# Install dependencies
-pnpm install
-
-# Copy environment template
-cp .env.example .env
-
-# Add your private key and Alchemy API key to .env
-```
-
-Your `.env` should look like:
-
-```bash
-PRIVATE_KEY=0x...
-ALCHEMY_API_KEY=your_alchemy_api_key_here
-```
 
 ## Understanding the Contract Structure
 
@@ -49,9 +31,11 @@ Every OApp needs three core components:
 2. **Send Logic**: Implement functions that call `_lzSend()`
 3. **Receive Logic**: Override `_lzReceive()` to handle incoming messages
 
-### Basic OApp Template
+## Step 1. Create a SimpleMessager.sol contract
 
-```solidity
+make sure its located in the "src/contracts" directory, hardhat by default will search are .sol files in the sub directorys
+
+```typescript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
@@ -60,51 +44,34 @@ import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OA
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SimpleMessenger is OApp, OAppOptionsType3 {
-    constructor(
-        address _endpoint,
-        address _owner
-    ) OApp(_endpoint, _owner) Ownable(_owner) {}
 
-    // Send logic
-    function send(...) external payable {
-        _lzSend(...);
-    }
-
-    // Receive logic
-    function _lzReceive(...) internal override {
-        // Process incoming message
-    }
 }
 ```
 
-## Building SimpleMessenger
+### Step 2: State Variables
 
-Let's build our contract step by step.
+```typescript
+  string public lastMessage; // Store the last received message
+  uint256 public messagesSent; // Track total messages sent
+  uint256 public messagesReceived; // Track total messages received
+  mapping(uint256 => string) public messageHistory; // Message history (optional, costs more gas)
+  uint16 public constant SEND = 1; // Define message type for enforced options
 
-### Step 1: State Variables
-
-```solidity
-string public lastMessage; // Store the last received message
-
-
-uint256 public messagesSent; // Track total messages sent
-
-
-uint256 public messagesReceived; // Track total messages received
-
-
-mapping(uint256 => string) public messageHistory; // Message history (optional, costs more gas)
-
-
-uint16 public constant SEND = 1; // Define message type for enforced options
-
-
-// Events for tracking
-event MessageSent(uint32 dstEid, string message, uint256 fee);
-event MessageReceived(string message, uint32 srcEid, bytes32 sender);
+  // Events for tracking
+  event MessageSent(uint32 dstEid, string message, uint256 fee);
+  event MessageReceived(string message, uint32 srcEid, bytes32 sender);
 ```
 
-### Step 2: Sending Messages
+### Step 3: Constructor
+
+```typescript
+  constructor(
+        address _endpoint,
+        address _owner
+    ) OApp(_endpoint, _owner) Ownable(_owner) {}
+```
+
+### Step 4: Send function
 
 The send function needs to:
 
@@ -112,24 +79,12 @@ The send function needs to:
 2. Calculate the fee
 3. Call `_lzSend()` with proper parameters
 
-PARAMS
-
-sendMessage
-
-1. Destination endpoint ID
-2. Message to send
-3. Execution options (gas limit, etc.)
-
-lzSend
-
-1. Destination endpoint ID
-2. Encoded message
-3. Execution options
-4. Fee in native gas token
-5. Refund address
-
-```solidity
-function sendMessage(uint32 _dstEid, string calldata _message, bytes calldata _options) external payable {
+```typescript
+function sendMessage(
+  uint32 _dstEid, // Destination endpoint ID
+  string calldata _message, // Message to send
+  bytes calldata _options // Execution options (gas limit, etc.)
+  ) external payable {
 
     bytes memory _payload = abi.encode(_message); // Encode the message
 
@@ -138,11 +93,11 @@ function sendMessage(uint32 _dstEid, string calldata _message, bytes calldata _o
 
     // Send the message
     _lzSend(
-        _dstEid,
-        _payload,
-        options,
-        MessagingFee(msg.value, 0),
-        payable(msg.sender)
+        _dstEid, // Destination endpoint ID
+        _payload, // Encoded message
+        options, // Execution options
+        MessagingFee(msg.value, 0),  // Fee in native gas token
+        payable(msg.sender) // Refund address
     );
 
     // Update state
@@ -152,16 +107,16 @@ function sendMessage(uint32 _dstEid, string calldata _message, bytes calldata _o
 }
 ```
 
-### Step 3: Quoting Fees
+### Step 5: Quoting Fees function
 
 Always provide a quote function so users can check costs before sending:
 
-```solidity
+```typescript
 function quote(
-    uint32 _dstEid,
-    string calldata _message,
-    bytes calldata _options,
-    bool _payInLzToken
+    uint32 _dstEid, // Destination Endpoint ID
+    string calldata _message, // Message to send
+    bytes calldata _options, // Execution options (gas limit, etc.)
+    bool _payInLzToken // Is it being payed in LZO Token
 ) external view returns (MessagingFee memory fee) {
     bytes memory _payload = abi.encode(_message);
     bytes memory options = combineOptions(_dstEid, SEND, _options);
@@ -170,11 +125,11 @@ function quote(
 }
 ```
 
-### Step 4: Receiving Messages
+### Step 6: Internal Receiving Messages function
 
 Override `_lzReceive()` to handle incoming messages:
 
-```solidity
+```typescript
 function _lzReceive(
     Origin calldata _origin,
     bytes32 _guid,
@@ -198,7 +153,7 @@ function _lzReceive(
 
 Here's the complete `SimpleMessenger.sol`:
 
-```solidity
+```typescript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
@@ -224,12 +179,6 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
         address _owner
     ) OApp(_endpoint, _owner) Ownable(_owner) {}
 
-    /**
-     * @notice Send a message to another chain
-     * @param _dstEid Destination endpoint ID
-     * @param _message Message to send
-     * @param _options Execution options (gas limit, etc.)
-     */
     function sendMessage(
         uint32 _dstEid,
         string calldata _message,
@@ -250,14 +199,6 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
         emit MessageSent(_dstEid, _message, msg.value);
     }
 
-    /**
-     * @notice Quote the fee for sending a message
-     * @param _dstEid Destination endpoint ID
-     * @param _message Message to send
-     * @param _options Execution options
-     * @param _payInLzToken Whether to pay in LZ token
-     * @return fee The messaging fee
-     */
     function quote(
         uint32 _dstEid,
         string calldata _message,
@@ -269,17 +210,12 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
         fee = _quote(_dstEid, _payload, options, _payInLzToken);
     }
 
-    /**
-     * @notice Internal function to handle received messages
-     * @param _origin Message origin information
-     * @param _payload Encoded message payload
-     */
     function _lzReceive(
         Origin calldata _origin,
-        bytes32 /*_guid*/,
+        bytes32,
         bytes calldata _payload,
-        address /*_executor*/,
-        bytes calldata /*_extraData*/
+        address,
+        bytes calldata
     ) internal override {
         string memory message = abi.decode(_payload, (string));
 
@@ -292,6 +228,8 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
 }
 ```
 
+## Hardhat compile
+
 ## Deployment Process
 
 Deploying an OApp involves three steps:
@@ -300,61 +238,11 @@ Deploying an OApp involves three steps:
 2. Configure peers (trusted remote contracts)
 3. Set enforced options (gas limits, etc.)
 
-### Step 1: Create Deploy Script
+### Step 1: Deploy Script
 
-Create `courses/omnichain-messaging/utils/deploy-simple-messenger.ts`:
+Its up to you I you would like to create your own script or use the ones that I have written.
 
-```typescript
-import { ethers } from "hardhat";
-import { EndpointId } from "@layerzerolabs/lz-definitions";
-
-async function main() {
-  // Get network name from Hardhat
-  const network = await ethers.provider.getNetwork();
-  console.log(`Deploying to network: ${network.name}`);
-
-  // Endpoint addresses for each network
-  const endpoints: { [key: string]: string } = {
-    "ethereum-sepolia": "0x6EDCE65403992e310A62460808c4b910D972f10f",
-    "arbitrum-sepolia": "0x6EDCE65403992e310A62460808c4b910D972f10f",
-    "optimism-sepolia": "0x6EDCE65403992e310A62460808c4b910D972f10f",
-    "base-sepolia": "0x6EDCE65403992e310A62460808c4b910D972f10f",
-    "polygon-amoy": "0x6EDCE65403992e310A62460808c4b910D972f10f",
-  };
-
-  const endpointAddress = endpoints[network.name];
-  if (!endpointAddress) {
-    throw new Error(`No endpoint configured for network: ${network.name}`);
-  }
-
-  // Get deployer
-  const [deployer] = await ethers.getSigners();
-  console.log(`Deploying with account: ${deployer.address}`);
-
-  // Deploy SimpleMessenger
-  const SimpleMessenger = await ethers.getContractFactory("SimpleMessenger");
-  const messenger = await SimpleMessenger.deploy(
-    endpointAddress,
-    deployer.address
-  );
-
-  await messenger.deployed();
-
-  console.log(`SimpleMessenger deployed to: ${messenger.address}`);
-  console.log(`Owner: ${deployer.address}`);
-  console.log(`Endpoint: ${endpointAddress}`);
-
-  // Save deployment info
-  console.log("\n📝 Save this address for peer configuration!");
-}
-
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-```
+Deployment Script Located "src/scripts/deploy.ts" the script is able to deploy any compiled contract, just replace the contract name with the Oapp contract you want to deploy. In our case it will SimpleMessenger.sol
 
 ### Step 2: Deploy to Networks
 
@@ -374,70 +262,9 @@ Save both addresses! You'll need them for peer configuration.
 
 After deployment, you must set peers so contracts trust each other.
 
-Create `courses/omnichain-messaging/utils/configure-peers.ts`:
+Its up to you I you would like to create your own script or use the ones that I have written.
 
-```typescript
-import { ethers } from "hardhat";
-import { EndpointId } from "@layerzerolabs/lz-definitions";
-
-async function main() {
-  // YOUR DEPLOYED ADDRESSES
-  const addresses = {
-    "ethereum-sepolia": "0xYourSepoliaAddress",
-    "arbitrum-sepolia": "0xYourArbSepoliaAddress",
-  };
-
-  const currentNetwork = (await ethers.provider.getNetwork()).name;
-  const messengerAddress = addresses[currentNetwork];
-
-  if (!messengerAddress) {
-    throw new Error(`No address configured for ${currentNetwork}`);
-  }
-
-  const messenger = await ethers.getContractAt(
-    "SimpleMessenger",
-    messengerAddress
-  );
-
-  // Set peer for the other network
-  if (currentNetwork === "ethereum-sepolia") {
-    const arbSepoliaEid = EndpointId.ARBSEP_V2_TESTNET;
-    const peerAddress = addresses["arbitrum-sepolia"];
-
-    console.log(`Setting peer for Arbitrum Sepolia (EID: ${arbSepoliaEid})`);
-    console.log(`Peer address: ${peerAddress}`);
-
-    const tx = await messenger.setPeer(
-      arbSepoliaEid,
-      ethers.utils.zeroPad(peerAddress, 32)
-    );
-    await tx.wait();
-
-    console.log("✅ Peer configured!");
-  } else if (currentNetwork === "arbitrum-sepolia") {
-    const sepoliaEid = EndpointId.SEPOLIA_V2_TESTNET;
-    const peerAddress = addresses["ethereum-sepolia"];
-
-    console.log(`Setting peer for Ethereum Sepolia (EID: ${sepoliaEid})`);
-    console.log(`Peer address: ${peerAddress}`);
-
-    const tx = await messenger.setPeer(
-      sepoliaEid,
-      ethers.utils.zeroPad(peerAddress, 32)
-    );
-    await tx.wait();
-
-    console.log("✅ Peer configured!");
-  }
-}
-
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-```
+Deployment Script Located "src/scripts/configure.ts" the script is able to deploy any compiled contract, just replace the contract name with the Oapp contract you want to deploy. In our case it will SimpleMessenger.sol
 
 Run on both networks:
 

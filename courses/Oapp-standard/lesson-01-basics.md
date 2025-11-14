@@ -1,20 +1,16 @@
 # Lesson 01 — LayerZero Basics
 
-This lesson introduces LayerZero V2's core architecture, OApp standard, and cross-chain messaging patterns for EVM developers.
-
-## What is LayerZero?
-
-LayerZero is an omnichain interoperability protocol that enables smart contracts to send and receive arbitrary messages across different blockchain networks. The OApp (Omnichain Application) standard provides a simple, secure interface for building cross-chain applications.
+This lesson introduces LayerZero V2's core architecture, OApp standard, and cross-chain messaging patterns for EVM Chains.
 
 ## Key Concepts
 
 ### OApp (Omnichain Application)
 
-The OApp standard lets your contract send and receive arbitrary messages across chains. With OApp, you can update on-chain state on one network and trigger custom business logic on another. Oapp is the foundation for all layerzero the provided courses understanding how this work will make all other courses much easier.
+The OApp standard lets your contract send and receive arbitrary messages across chains. With OApp, you can update on-chain state on one network and trigger custom business logic on another. Oapp is the foundation for all layerzero protocols understanding this course will make all other content and exercises easier to understand. Lets Level up togerther.
 
 **OApp.sol** implements the core interface for calling LayerZero's Endpoint V2 on EVM chains and provides `_lzSend` and `_lzReceive` methods for injecting your business logic.
 
-### Core Components
+### Core Components of LayerZero Protocol
 
 **Endpoint V2** -- LayerZero Deployed Contract
 
@@ -35,16 +31,11 @@ The OApp standard lets your contract send and receive arbitrary messages across 
 - Pays gas for executing `lzReceive` on destination
 - Configurable gas limits and execution options
 
-**Message Library**
-
-- SendUln302: Handles outbound messages
-- ReceiveUln302: Handles inbound messages
-
 ## Cross-Chain Message Flow
 
 ### Simple Send/Receive Pattern
 
-![LayerZero Message Flow](../../diagrams/layerzero-flow.svg)
+![LayerZero Message Flow](../../src/diagrams/layerzero-flow.svg)
 
 **Step-by-Step Flow:**
 
@@ -79,11 +70,13 @@ The OApp standard lets your contract send and receive arbitrary messages across 
    - Calls `_lzReceive()` with message
    - OApp processes message
 
+## More than just a decentralized Instagram
+
 ### ABA Pattern (Ping-Pong)
 
 The ABA pattern enables nested messaging where a message from Chain A to Chain B triggers another message back to Chain A.
 
-![ABA Pattern](../../diagrams/aba-pattern.svg)
+![ABA Pattern](../../src/diagrams/aba-pattern.svg)
 
 Use cases:
 
@@ -95,7 +88,7 @@ Use cases:
 
 Send multiple messages to different chains in a single transaction.
 
-![Batch Send Pattern](../../diagrams/batch-send-pattern.svg)
+![Batch Send Pattern](../../src/diagrams/batch-send-pattern.svg)
 
 Use cases:
 
@@ -103,19 +96,141 @@ Use cases:
 - Broadcasting to multiple networks
 - Cross-chain governance
 
-## Protocol Deep Dive
+## Contract Ownership Best Practices
+
+LayerZero's Contract Standards inherit the OpenZeppelin `Ownable` standard by default. This enables secure administration of deployed contracts.
+
+### Why Ownership Matters
+
+As the contract owner, you control:
+
+- **Peer Management**: Setting trusted peers for cross-chain operations
+- **Delegate Controls**: Managing addresses that can configure on your behalf
+- **Enforced Options**: Configuring gas limits and execution options
+- **Message Inspectors**: Security checks and message validation
+- **DVN Configuration**: Choosing which verifiers to trust
+
+### Recommended Practices
+
+**1. Transfer to a Multisig wallet**
+
+```typescript
+// Maintains control with distributed security
+address multisig = 0x1234...;
+oapp.transferOwnership(multisig);
+```
+
+**2. Maintain Flexibility**
+
+Retaining ownership allows you to:
+
+- Add new cross-chain pathways
+- Respond to chain-level disruptions
+- Update security configurations
+- Adjust gas settings for changing network conditions
+
+### Ownership Operations Example
+
+```typescript
+// Deploy OApp
+MyOApp oapp = new MyOApp(endpoint, owner);
+
+// Configure peers (requires ownership)
+oapp.setPeer(dstEid, peerAddress);
+
+// Set enforced options (requires ownership)
+oapp.setEnforcedOptions(enforcedOptionsArray);
+
+// Transfer to multisig for production
+oapp.transferOwnership(multisigAddress);
+```
+
+## Security Considerations
+
+### Always Validate Source
+
+```typescript
+function _lzReceive(
+    Origin calldata _origin,
+    bytes32 _guid,
+    bytes calldata _message,
+    address _executor,
+    bytes calldata _extraData
+) internal override {
+    // Validation happens automatically via OApp.sol
+    // Only registered peers can send messages
+    // _origin.srcEid and _origin.sender are verified
+
+    // Your business logic here
+    processMessage(_message);
+}
+```
+
+### Reentrancy Protection
+
+Be careful with external calls in `_lzReceive`:
+
+```typescript
+// BAD - Vulnerable to reentrancy
+
+function _lzReceive(...) internal override {
+    uint256 amount = abi.decode(_message, (uint256));
+    token.transfer(recipient, amount); // External call
+    balances[recipient] += amount; // State change after
+}
+
+// GOOD - State changes before external calls
+
+function _lzReceive(...) internal override {
+    uint256 amount = abi.decode(_message, (uint256));
+    balances[recipient] += amount; // State change first
+    token.transfer(recipient, amount); // External call after
+}
+```
+
+### Gas Considerations
+
+- Always provide sufficient gas via `_options`
+- Use `quoteSendString()` to estimate costs
+- Account for variable gas prices on destination chains
+- Set reasonable enforced options as safety nets
+
+## Key Takeaways
+
+1. **OApp is the foundation** for all LayerZero cross-chain messaging
+2. **Endpoint V2** handles all protocol-level concerns (DVNs, Executors, verification)
+3. **Peer validation** is automatic - only registered peers can communicate
+4. **Ownership matters** - use multisig for production contracts
+5. **Gas planning** is critical - always quote before sending
+6. **Security first** - validate inputs, protect against reentrancy
+
+## Next Steps
+
+- **Lesson 02**: Building and Deploy your first OApp
+- **Lesson 03**: Tackle some of the more advanced messaging use cases
+- **Lesson 04**: Learn the differences between EVM and Solana Oapps
+- **Lesson 05**: Complete all the challenges
+
+## Resources
+
+- [LayerZero V2 Documentation](https://docs.layerzero.network/v2)
+- [LayerZero GitHub](https://github.com/LayerZero-Labs)
+- [LayerZero Scan](https://layerzeroscan.com) - Track your messages
+- [Endpoint Addresses](https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts)
+
+## Protocol Deep Dive (Optional)
 
 This section explores the low-level internals of LayerZero V2 messaging, showing exactly how packets flow through the protocol.
 
 ### Complete Message Lifecycle
 
-![Message Lifecycle](../../diagrams/message-lifecycle.svg)
+![Message Lifecycle](../../src/diagrams/message-lifecycle.svg)
 
 ### Packet Structure
 
 Every cross-chain message is encoded into a packet with the following structure:
 
-```solidity
+```typescript
 struct Packet {
     uint64 nonce;        // Unique per sender-receiver-dstEid path
     uint32 srcEid;       // Source endpoint ID
@@ -129,15 +244,11 @@ struct Packet {
 
 **GUID Generation:**
 
-```solidity
+```typescript
 // Globally unique - collision resistant
-guid = keccak256(abi.encodePacked(
-    nonce,
-    srcEid,
-    sender.toBytes32(),
-    dstEid,
-    receiver
-));
+guid = keccak256(
+  abi.encodePacked(nonce, srcEid, sender.toBytes32(), dstEid, receiver)
+);
 ```
 
 ### Nonce Management
@@ -146,7 +257,7 @@ LayerZero uses two types of nonces:
 
 **1. outboundNonce** (Source Chain)
 
-```solidity
+```typescript
 // Tracks messages sent from this OApp to specific receiver
 mapping(
     address sender =>
@@ -160,7 +271,7 @@ nonce = ++outboundNonce[sender][dstEid][receiver];
 
 **2. lazyInboundNonce** (Destination Chain)
 
-```solidity
+```typescript
 // Tracks last executed message nonce
 mapping(
     address receiver =>
@@ -174,11 +285,11 @@ mapping(
 
 ### Fee Payment Flow
 
-![Fee Payment Flow](../../diagrams/fee-payment-flow.svg)
+![Fee Payment Flow](../../src/diagrams/fee-payment-flow.svg)
 
 **Fee Calculation:**
 
-```solidity
+```typescript
 struct MessagingFee {
     uint256 nativeFee;    // Paid in chain's native token (ETH, MATIC, etc.)
     uint256 lzTokenFee;   // Optional: pay in ZRO token
@@ -188,11 +299,11 @@ struct MessagingFee {
 totalFee = Σ(dvnFees) + executorFee + treasuryFee;
 ```
 
-### DVN Verification Process
+### DVN Verification Process (low level implemented under the hood)
 
 **Step 1: Assign Jobs (Source Chain)**
 
-```solidity
+```typescript
 // SendUln302 assigns verification job to each DVN
 for (uint8 i = 0; i < requiredDVNCount; i++) {
     address dvn = requiredDVNs[i];
@@ -203,7 +314,7 @@ for (uint8 i = 0; i < requiredDVNCount; i++) {
 
 **Step 2: DVNs Submit Verification (Destination Chain)**
 
-```solidity
+```typescript
 // Each DVN calls ReceiveUln302.verify()
 function verify(
     bytes calldata _packetHeader,
@@ -220,7 +331,7 @@ function verify(
 
 **Step 3: Commit Verification**
 
-```solidity
+```typescript
 // After required DVNs + optional threshold met
 function commitVerification(
     bytes calldata _packetHeader,
@@ -241,7 +352,7 @@ function commitVerification(
 
 **Insertion into Channel:**
 
-```solidity
+```typescript
 // ReceiveUln302 commits to Endpoint's message channel
 mapping(
     address receiver =>
@@ -256,7 +367,7 @@ inboundPayloadHash[receiver][srcEid][sender][nonce] = payloadHash;
 
 **Execution by Executor:**
 
-```solidity
+```typescript
 function lzReceive(
     Origin calldata _origin,
     address _receiver,
@@ -278,7 +389,7 @@ function lzReceive(
 
 **Payload Clearing:**
 
-```solidity
+```typescript
 function _clearPayload(...) internal {
     // Update lazyInboundNonce to mark this and prior messages as executed
     if (_nonce > currentNonce) {
@@ -301,7 +412,7 @@ function _clearPayload(...) internal {
 
 **SendLibrary (per destination):**
 
-```solidity
+```typescript
 // OApp can set custom send library for each destination
 mapping(address oapp => mapping(uint32 dstEid => address lib)) public sendLibrary;
 
@@ -321,7 +432,7 @@ function getSendLibrary(address _sender, uint32 _dstEid) public view returns (ad
 
 **ReceiveLibrary (per source):**
 
-```solidity
+```typescript
 // Similar structure for receive libraries
 mapping(address oapp => mapping(uint32 srcEid => address lib)) public receiveLibrary;
 
@@ -336,7 +447,7 @@ struct Timeout {
 
 Each OApp configures its security parameters per pathway:
 
-```solidity
+```typescript
 struct UlnConfig {
     uint64 confirmations;           // Block confirmations required
     uint8 requiredDVNCount;         // Number of required DVNs
@@ -359,7 +470,7 @@ config = UlnConfig({
 
 ### Executor Configuration
 
-```solidity
+```typescript
 struct ExecutorConfig {
     uint32 maxMessageSize;    // Max bytes for message
     address executor;         // Executor address
@@ -373,7 +484,7 @@ struct ExecutorConfig {
 
 OApps specify execution parameters via options:
 
-```solidity
+```typescript
 // Built with OptionsBuilder
 bytes memory options = OptionsBuilder.newOptions()
     .addExecutorLzReceiveOption(200000, 0)        // 200k gas, 0 native value
@@ -387,7 +498,7 @@ finalOptions = combineOptions(dstEid, msgType, callerOptions);
 
 **Path Validation:**
 
-```solidity
+```typescript
 // OApp must allow path initialization
 function allowInitializePath(Origin calldata origin) public view returns (bool) {
     return peers[origin.srcEid] == origin.sender;
@@ -396,7 +507,7 @@ function allowInitializePath(Origin calldata origin) public view returns (bool) 
 
 **Receive Validation:**
 
-```solidity
+```typescript
 function lzReceive(...) public payable {
     // 1. Only Endpoint can call
     require(msg.sender == address(endpoint), "Only endpoint");
@@ -428,138 +539,3 @@ function lzReceive(...) public payable {
 - Messages can be verified out of order
 - Execution must be in order (lazyInboundNonce)
 - No gaps allowed in execution sequence
-
-## Contract Ownership Best Practices
-
-LayerZero's Contract Standards inherit the OpenZeppelin `Ownable` standard by default. This enables secure administration of deployed contracts.
-
-### Why Ownership Matters
-
-As the contract owner, you control:
-
-- **Peer Management**: Setting trusted peers for cross-chain operations
-- **Delegate Controls**: Managing addresses that can configure on your behalf
-- **Enforced Options**: Configuring gas limits and execution options
-- **Message Inspectors**: Security checks and message validation
-- **DVN Configuration**: Choosing which verifiers to trust
-
-### Recommended Best Practices
-
-**1. Retain Ownership with a Secure Multisig**
-
-❌ **Don't:** Renounce ownership of critical contracts
-
-```solidity
-// BAD - Removes ability to update configuration
-oapp.renounceOwnership();
-```
-
-✅ **Do:** Transfer to a multisig wallet
-
-```solidity
-// GOOD - Maintains control with distributed security
-address multisig = 0x1234...;
-oapp.transferOwnership(multisig);
-```
-
-**2. Maintain Flexibility**
-
-Retaining ownership allows you to:
-
-- Add new cross-chain pathways
-- Respond to chain-level disruptions
-- Update security configurations
-- Adjust gas settings for changing network conditions
-
-**3. Document and Audit**
-
-- Clearly document ownership and admin processes
-- Regularly audit multisig settings
-- Ensure appropriate quorum (e.g., 3-of-5, 4-of-7)
-- Keep a disaster recovery plan
-
-### Ownership Operations Example
-
-```solidity
-// Deploy OApp
-MyOApp oapp = new MyOApp(endpoint, owner);
-
-// Configure peers (requires ownership)
-oapp.setPeer(dstEid, peerAddress);
-
-// Set enforced options (requires ownership)
-oapp.setEnforcedOptions(enforcedOptionsArray);
-
-// Transfer to multisig for production
-oapp.transferOwnership(multisigAddress);
-```
-
-## Security Considerations
-
-### Always Validate Source
-
-```solidity
-function _lzReceive(
-    Origin calldata _origin,
-    bytes32 _guid,
-    bytes calldata _message,
-    address _executor,
-    bytes calldata _extraData
-) internal override {
-    // Validation happens automatically via OApp.sol
-    // Only registered peers can send messages
-    // _origin.srcEid and _origin.sender are verified
-
-    // Your business logic here
-    processMessage(_message);
-}
-```
-
-### Reentrancy Protection
-
-Be careful with external calls in `_lzReceive`:
-
-```solidity
-// BAD - Vulnerable to reentrancy
-function _lzReceive(...) internal override {
-    uint256 amount = abi.decode(_message, (uint256));
-    token.transfer(recipient, amount); // External call
-    balances[recipient] += amount; // State change after
-}
-
-// GOOD - State changes before external calls
-function _lzReceive(...) internal override {
-    uint256 amount = abi.decode(_message, (uint256));
-    balances[recipient] += amount; // State change first
-    token.transfer(recipient, amount); // External call after
-}
-```
-
-### Gas Considerations
-
-- Always provide sufficient gas via `_options`
-- Use `quoteSendString()` to estimate costs
-- Account for variable gas prices on destination chains
-- Set reasonable enforced options as safety nets
-
-## Key Takeaways
-
-1. **OApp is the foundation** for all LayerZero cross-chain messaging
-2. **Endpoint V2** handles all protocol-level concerns (DVNs, Executors, verification)
-3. **Peer validation** is automatic - only registered peers can communicate
-4. **Ownership matters** - use multisig for production contracts
-5. **Gas planning** is critical - always quote before sending
-6. **Security first** - validate inputs, protect against reentrancy
-
-## Next Steps
-
-- **Lesson 02**: Building your first OApp with code examples
-- **Lesson 03**: Deploying and testing across multiple chains
-- Review `src/omnichain-messaging/MyOApp.sol` for a complete implementation
-
-## Resources
-
-- [LayerZero V2 Documentation](https://docs.layerzero.network/v2)
-- [LayerZero GitHub](https://github.com/LayerZero-Labs)
-- [LayerZero Scan](https://layerzeroscan.com) - Track your messages
-- [Endpoint Addresses](https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts)

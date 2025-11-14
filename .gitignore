@@ -16,6 +16,7 @@ typechain-types/
 
 # Deployment outputs
 deployments/
+deployments.json
 broadcast/
 
 # IDE
