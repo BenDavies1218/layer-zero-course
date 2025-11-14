@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 550">
+  <!-- Define styles -->
+  <defs>
+    <style>
+      .box { fill: #3498db; stroke: #2c3e50; stroke-width: 2; }
+      .box-text { font-family: Arial, sans-serif; font-size: 14px; fill: white; text-anchor: middle; }
+      .arrow { stroke: #e74c3c; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-label { font-family: Arial, sans-serif; font-size: 11px; fill: #c0392b; }
+      .step-num { font-family: Arial, sans-serif; font-size: 11px; fill: white; text-anchor: middle; font-weight: bold; }
+      .chain-label { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #2c3e50; text-anchor: middle; }
+    </style>
+
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#e74c3c" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" style="font-family: Arial; font-size: 18px; font-weight: bold; fill: #2c3e50; text-anchor: middle;">Batch Send Pattern (One-to-Many)</text>
+
+  <!-- Source Chain A -->
+  <text x="150" y="70" class="chain-label">Chain A (Source)</text>
+  <rect x="80" y="90" width="140" height="60" rx="5" class="box"/>
+  <text x="150" y="125" class="box-text">OApp A</text>
+
+  <!-- Destination Chains -->
+  <text x="550" y="70" class="chain-label">Destination Chains</text>
+
+  <!-- Chain B -->
+  <rect x="480" y="120" width="140" height="50" rx="5" class="box"/>
+  <text x="550" y="145" class="box-text" font-size="12">OApp B</text>
+  <text x="550" y="160" class="box-text" font-size="10">(Chain B)</text>
+
+  <!-- Chain C -->
+  <rect x="480" y="190" width="140" height="50" rx="5" class="box"/>
+  <text x="550" y="215" class="box-text" font-size="12">OApp C</text>
+  <text x="550" y="230" class="box-text" font-size="10">(Chain C)</text>
+
+  <!-- Chain D -->
+  <rect x="480" y="260" width="140" height="50" rx="5" class="box"/>
+  <text x="550" y="285" class="box-text" font-size="12">OApp D</text>
+  <text x="550" y="300" class="box-text" font-size="10">(Chain D)</text>
+
+  <!-- Chain E -->
+  <rect x="480" y="330" width="140" height="50" rx="5" class="box"/>
+  <text x="550" y="355" class="box-text" font-size="12">OApp E</text>
+  <text x="550" y="370" class="box-text" font-size="10">(Chain E)</text>
+
+  <!-- Arrows from A to each destination -->
+  <!-- To B -->
+  <path d="M 220 110 L 480 145" class="arrow"/>
+  <circle cx="240" cy="115" r="12" fill="#e74c3c"/>
+  <text x="240" y="120" class="step-num">1</text>
+
+  <!-- To C -->
+  <path d="M 220 120 L 480 215" class="arrow"/>
+  <circle cx="250" cy="125" r="12" fill="#e74c3c"/>
+  <text x="250" y="130" class="step-num">2</text>
+
+  <!-- To D -->
+  <path d="M 220 130 L 480 285" class="arrow"/>
+  <circle cx="260" cy="135" r="12" fill="#e74c3c"/>
+  <text x="260" y="140" class="step-num">3</text>
+
+  <!-- To E -->
+  <path d="M 220 140 L 480 355" class="arrow"/>
+  <circle cx="270" cy="145" r="12" fill="#e74c3c"/>
+  <text x="270" y="150" class="step-num">4</text>
+
+  <!-- Code Example -->
+  <g transform="translate(50, 420)">
+    <rect x="0" y="0" width="700" height="100" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="5"/>
+    <text x="10" y="20" style="font-family: 'Courier New', monospace; font-size: 11px; fill: #2c3e50; font-weight: bold;">Example Code:</text>
+    <text x="10" y="38" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #495057;">uint32[] memory dstEids = [40161, 40245, 40232, 40184]; // B, C, D, E</text>
+    <text x="10" y="53" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #495057;">for (uint i = 0; i &lt; dstEids.length; i++) {</text>
+    <text x="30" y="68" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #495057;">_lzSend(dstEids[i], message, options, fee, refundAddress);</text>
+    <text x="10" y="83" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #495057;">}</text>
+  </g>
+
+  <!-- Info Box -->
+  <g transform="translate(250, 400)">
+    <text x="0" y="0" style="font-family: Arial; font-size: 11px; fill: #34495e; font-style: italic;">Use case: Broadcasting state updates, multi-chain token distribution, global notifications</text>
+  </g>
+</svg>

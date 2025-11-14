@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Define styles -->
+  <defs>
+    <style>
+      .chain-label { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .box { fill: #3498db; stroke: #2c3e50; stroke-width: 2; }
+      .box-text { font-family: Arial, sans-serif; font-size: 14px; fill: white; text-anchor: middle; }
+      .step-label { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .arrow { stroke: #e74c3c; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-label { font-family: Arial, sans-serif; font-size: 11px; fill: #c0392b; }
+      .offchain-box { fill: #95a5a6; stroke: #7f8c8d; stroke-width: 2; }
+      .offchain-label { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; font-style: italic; }
+    </style>
+
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#e74c3c" />
+    </marker>
+  </defs>
+
+  <!-- Chain Labels -->
+  <text x="150" y="30" class="chain-label">CHAIN A (Source)</text>
+  <text x="550" y="30" class="chain-label">CHAIN B (Destination)</text>
+
+  <!-- Chain A - OApp -->
+  <rect x="80" y="60" width="140" height="60" rx="5" class="box"/>
+  <text x="150" y="95" class="box-text">OApp A</text>
+
+  <!-- Chain A - Endpoint -->
+  <rect x="80" y="180" width="140" height="60" rx="5" class="box"/>
+  <text x="150" y="210" class="box-text">Endpoint V2</text>
+  <text x="150" y="225" class="box-text">(Chain A)</text>
+
+  <!-- Chain B - OApp -->
+  <rect x="480" y="60" width="140" height="60" rx="5" class="box"/>
+  <text x="550" y="95" class="box-text">OApp B</text>
+
+  <!-- Chain B - Endpoint -->
+  <rect x="480" y="180" width="140" height="60" rx="5" class="box"/>
+  <text x="550" y="210" class="box-text">Endpoint V2</text>
+  <text x="550" y="225" class="box-text">(Chain B)</text>
+
+  <!-- Off-chain Workers -->
+
+  <!-- DVNs -->
+  <rect x="80" y="350" width="140" height="60" rx="5" class="offchain-box"/>
+  <text x="150" y="380" class="box-text">DVNs</text>
+  <text x="150" y="395" class="box-text">(Verifiers)</text>
+  <text x="150" y="425" class="offchain-label">(Off-Chain)</text>
+
+  <!-- Executor -->
+  <rect x="480" y="350" width="140" height="60" rx="5" class="offchain-box"/>
+  <text x="550" y="380" class="box-text">Executor</text>
+  <text x="550" y="425" class="offchain-label">(Off-Chain)</text>
+
+  <!-- Arrows and Flow -->
+
+  <!-- Step 1: OApp A to Endpoint A -->
+  <path d="M 150 120 L 150 180" class="arrow"/>
+  <text x="160" y="155" class="arrow-label">1. _lzSend(msg)</text>
+
+  <!-- Step 2: Endpoint A emits event -->
+  <path d="M 150 240 L 150 300 L 150 350" class="arrow"/>
+  <text x="160" y="280" class="arrow-label">2. Emit PacketSent</text>
+  <text x="160" y="295" class="arrow-label">   (Event)</text>
+
+  <!-- Step 3: DVNs to Executor -->
+  <path d="M 220 380 L 480 380" class="arrow"/>
+  <text x="300" y="360" class="arrow-label">4. Verify Message</text>
+
+  <!-- Step 4: Endpoint A to Endpoint B (packet transmission) -->
+  <path d="M 220 210 L 340 210 L 460 210 L 480 210" class="arrow" stroke-dasharray="5,5"/>
+  <text x="300" y="200" class="arrow-label">3. Cross-Chain Packet</text>
+
+  <!-- Step 5: Executor to Endpoint B -->
+  <path d="M 550 350 L 550 240" class="arrow"/>
+  <text x="470" y="300" class="arrow-label">5. lzReceive()</text>
+  <text x="470" y="315" class="arrow-label">   (Deliver)</text>
+
+  <!-- Step 6: Endpoint B to OApp B -->
+  <path d="M 550 180 L 550 120" class="arrow"/>
+  <text x="430" y="155" class="arrow-label">6. _lzReceive(msg)</text>
+
+  <!-- Step Numbers in Circles -->
+  <circle cx="150" cy="50" r="12" fill="#e74c3c"/>
+  <text x="150" y="55" style="font-family: Arial; font-size: 12px; fill: white; text-anchor: middle; font-weight: bold;">1</text>
+
+  <circle cx="150" cy="170" r="12" fill="#e74c3c"/>
+  <text x="150" y="175" style="font-family: Arial; font-size: 12px; fill: white; text-anchor: middle; font-weight: bold;">2</text>
+
+  <circle cx="150" cy="340" r="12" fill="#e74c3c"/>
+  <text x="150" y="345" style="font-family: Arial; font-size: 12px; fill: white; text-anchor: middle; font-weight: bold;">3</text>
+
+  <circle cx="350" cy="380" r="12" fill="#e74c3c"/>
+  <text x="350" y="385" style="font-family: Arial; font-size: 12px; fill: white; text-anchor: middle; font-weight: bold;">4</text>
+
+  <circle cx="550" cy="340" r="12" fill="#e74c3c"/>
+  <text x="550" y="345" style="font-family: Arial; font-size: 12px; fill: white; text-anchor: middle; font-weight: bold;">5</text>
+
+  <circle cx="550" cy="170" r="12" fill="#e74c3c"/>
+  <text x="550" y="175" style="font-family: Arial; font-size: 12px; fill: white; text-anchor: middle; font-weight: bold;">6</text>
+
+  <!-- Legend -->
+  <g transform="translate(250, 480)">
+    <text x="0" y="0" style="font-family: Arial; font-size: 13px; fill: #ffffffff; font-weight: bold;">Message Flow:</text>
+    <text x="0" y="20" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">1. User calls sendString() on Chain A</text>
+    <text x="0" y="35" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">2. Endpoint emits PacketSent event</text>
+    <text x="0" y="50" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">3. Packet propagates cross-chain</text>
+    <text x="0" y="65" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">4. DVNs verify and Executor prepares</text>
+    <text x="0" y="80" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">5. Executor delivers to Endpoint B</text>
+    <text x="0" y="95" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">6. Endpoint calls _lzReceive on OApp B</text>
+  </g>
+</svg>

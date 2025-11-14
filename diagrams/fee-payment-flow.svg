@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 800">
+  <!-- Define styles -->
+  <defs>
+    <style>
+      .entity-box { fill: #3498db; stroke: #2c3e50; stroke-width: 2; }
+      .fee-box { fill: #f39c12; stroke: #d68910; stroke-width: 2; }
+      .worker-box { fill: #95a5a6; stroke: #7f8c8d; stroke-width: 2; }
+      .box-text { font-family: Arial, sans-serif; font-size: 12px; fill: white; text-anchor: middle; font-weight: 500; }
+      .arrow { stroke: #27ae60; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead-green); }
+      .fee-arrow { stroke: #f39c12; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead-orange); }
+      .arrow-label { font-family: Arial, sans-serif; font-size: 11px; fill: #27ae60; font-weight: 500; }
+      .fee-label { font-family: Arial, sans-serif; font-size: 11px; fill: #d68910; font-weight: 500; }
+      .step-num { font-family: Arial, sans-serif; font-size: 11px; fill: white; text-anchor: middle; font-weight: bold; }
+    </style>
+
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#27ae60" />
+    </marker>
+
+    <marker id="arrowhead-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#f39c12" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="425" y="30" style="font-family: Arial; font-size: 18px; font-weight: bold; fill: #2c3e50; text-anchor: middle;">Fee Payment Flow</text>
+  <text x="425" y="50" style="font-family: Arial; font-size: 13px; fill: #34495e; text-anchor: middle;">How messaging fees are collected and distributed</text>
+
+  <!-- User -->
+  <rect x="50" y="100" width="100" height="50" rx="5" fill="#2ecc71" stroke="#27ae60" stroke-width="2"/>
+  <text x="100" y="130" class="box-text">User</text>
+
+  <!-- OApp -->
+  <rect x="250" y="100" width="100" height="50" rx="5" class="entity-box"/>
+  <text x="300" y="130" class="box-text">OApp</text>
+
+  <!-- Endpoint -->
+  <rect x="450" y="100" width="120" height="50" rx="5" class="entity-box"/>
+  <text x="510" y="130" class="box-text">Endpoint V2</text>
+
+  <!-- Fee Treasury -->
+  <rect x="650" y="100" width="120" height="50" rx="5" class="fee-box"/>
+  <text x="710" y="120" class="box-text">Fee Treasury</text>
+  <text x="710" y="138" class="box-text" font-size="10">(Endpoint)</text>
+
+  <!-- DVN Workers -->
+  <rect x="600" y="220" width="90" height="50" rx="5" class="worker-box"/>
+  <text x="645" y="240" class="box-text" font-size="11">DVN 1</text>
+  <text x="645" y="255" class="box-text" font-size="9">(Verifier)</text>
+
+  <rect x="710" y="220" width="90" height="50" rx="5" class="worker-box"/>
+  <text x="755" y="240" class="box-text" font-size="11">DVN 2</text>
+  <text x="755" y="255" class="box-text" font-size="9">(Verifier)</text>
+
+  <!-- Executor -->
+  <rect x="655" y="310" width="90" height="50" rx="5" class="worker-box"/>
+  <text x="700" y="335" class="box-text">Executor</text>
+
+  <!-- Step 1: User sends fee -->
+  <path d="M 150 125 L 250 125" class="fee-arrow"/>
+  <text x="200" y="115" class="fee-label">msg.value</text>
+  <circle cx="165" cy="125" r="12" fill="#f39c12"/>
+  <text x="165" y="130" class="step-num">1</text>
+
+  <!-- Step 2: OApp forwards to Endpoint -->
+  <path d="M 350 125 L 450 125" class="fee-arrow"/>
+  <text x="400" y="115" class="fee-label">fee</text>
+  <circle cx="365" cy="125" r="12" fill="#f39c12"/>
+  <text x="365" y="130" class="step-num">2</text>
+
+  <!-- Step 3: Endpoint holds in treasury -->
+  <path d="M 570 125 L 650 125" class="fee-arrow"/>
+  <text x="610" y="115" class="fee-label">deposit</text>
+  <circle cx="585" cy="125" r="12" fill="#f39c12"/>
+  <text x="585" y="130" class="step-num">3</text>
+
+  <!-- Step 4: DVN payments -->
+  <path d="M 700 150 L 655 220" class="arrow"/>
+  <text x="660" y="185" class="arrow-label">verify pay</text>
+
+  <path d="M 720 150 L 750 220" class="arrow"/>
+  <text x="730" y="185" class="arrow-label">verify pay</text>
+
+  <circle cx="710" cy="165" r="12" fill="#27ae60"/>
+  <text x="710" y="170" class="step-num">4</text>
+
+  <!-- Step 5: Executor payment -->
+  <path d="M 710 150 L 700 310" class="arrow"/>
+  <text x="665" y="235" class="arrow-label">execution pay</text>
+
+  <circle cx="705" cy="290" r="12" fill="#27ae60"/>
+  <text x="705" y="295" class="step-num">5</text>
+
+  <!-- Fee Breakdown Box -->
+  <g transform="translate(50, 400)">
+    <rect x="0" y="0" width="750" height="160" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="2" rx="5"/>
+
+    <text x="15" y="25" style="font-family: Arial; font-size: 14px; fill: #2c3e50; font-weight: bold;">Fee Structure Breakdown:</text>
+
+    <!-- Native Token Column -->
+    <rect x="20" y="40" width="340" height="105" fill="white" stroke="#bdc3c7" stroke-width="1" rx="3"/>
+    <text x="190" y="60" style="font-family: Arial; font-size: 12px; fill: #2c3e50; font-weight: bold; text-anchor: middle;">Native Token Payment (ETH/MATIC/etc)</text>
+
+    <text x="30" y="80" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">MessagingFee memory fee = _quote(</text>
+    <text x="40" y="95" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">  dstEid, message, options, false</text>
+    <text x="30" y="110" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">);</text>
+    <text x="30" y="125" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">_lzSend(..., fee, msg.sender);</text>
+    <text x="30" y="137" style="font-family: Arial; font-size: 9px; fill: #7f8c8d; font-style: italic;">• Most common: User pays native token</text>
+
+    <!-- ZRO Token Column -->
+    <rect x="380" y="40" width="350" height="105" fill="white" stroke="#bdc3c7" stroke-width="1" rx="3"/>
+    <text x="555" y="60" style="font-family: Arial; font-size: 12px; fill: #2c3e50; font-weight: bold; text-anchor: middle;">ZRO Token Payment (Alternative)</text>
+
+    <text x="390" y="80" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">MessagingFee memory fee = _quote(</text>
+    <text x="400" y="95" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">  dstEid, message, options, true // payInLzToken</text>
+    <text x="390" y="110" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">);</text>
+    <text x="390" y="125" style="font-family: 'Courier New', monospace; font-size: 10px; fill: #34495e;">_lzSend(..., fee, msg.sender);</text>
+    <text x="390" y="137" style="font-family: Arial; font-size: 9px; fill: #7f8c8d; font-style: italic;">• Optional: User pays with ZRO governance token</text>
+  </g>
+
+  <!-- Key Information -->
+  <g transform="translate(150, 680)">
+    <text x="0" y="0" style="font-family: Arial; font-size: 13px; fill: #ffffffff; font-weight: bold;">How Fees are Determined:</text>
+    <text x="0" y="20" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">• DVN Fees: Based on number of required + optional DVNs, gas costs for verification on source and destination</text>
+    <text x="0" y="38" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">• Executor Fee: Based on gas cost estimate for calling lzReceive() with your message on destination chain</text>
+    <text x="0" y="56" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">• Gas Limit: Set via ExecutorOptions in _options parameter (affects executor fee)</text>
+    <text x="0" y="74" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">• Quote First: Always call _quote() to get exact fee before sending to avoid overpaying/underpaying</text>
+    <text x="0" y="92" style="font-family: Arial; font-size: 11px; fill: #98a0a7ff;">• Refunds: Excess msg.value is refunded to refundAddress specified in _lzSend()</text>
+  </g>
+</svg>

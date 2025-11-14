@@ -1,0 +1,31 @@
+{
+	"name": "layer-zero-course",
+	"version": "1.0.0",
+	"description": "LayerZero V2 OApp Course - Learn cross-chain messaging with LayerZero",
+	"scripts": {
+		"compile": "hardhat compile",
+		"test": "hardhat test",
+		"deploy": "hardhat deploy"
+	},
+	"keywords": [
+		"layerzero",
+		"oapp",
+		"cross-chain",
+		"omnichain",
+		"blockchain"
+	],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@layerzerolabs/lz-definitions": "^3.0.145",
+		"@layerzerolabs/lz-evm-messagelib-v2": "^3.0.145",
+		"@layerzerolabs/lz-evm-protocol-v2": "^3.0.145",
+		"@layerzerolabs/oapp-evm": "^0.4.0",
+		"@layerzerolabs/toolbox-hardhat": "^0.6.12",
+		"@nomicfoundation/hardhat-toolbox": "^5.0.0",
+		"@openzeppelin/contracts": "^5.4.0",
+		"dotenv": "^17.2.3",
+		"ethers": "^5.7.2",
+		"hardhat": "^2.22.10"
+	}
+}
