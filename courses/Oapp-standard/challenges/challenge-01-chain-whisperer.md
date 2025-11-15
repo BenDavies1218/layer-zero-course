@@ -126,4 +126,4 @@ A single Markdown file containing:
 
 ---
 
-[← Back to Challenges](../challenges.md)
+[← Back to Challenges](../lesson-06-challenges.md)

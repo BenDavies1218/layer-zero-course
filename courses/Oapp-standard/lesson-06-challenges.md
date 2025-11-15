@@ -6,6 +6,8 @@ Each challenge focuses on one or more of the lessons. Some challenges involve ex
 
 ---
 
+Use of Claude, GPT, Cursor or other AI to complete the Challenges is absolutely discouraged. You will probably be required to research Solidity or other Smart Contract information, please reference any sources in your solutions.
+
 ## 🏆 Challenges
 
 | Challenge                                                       | Difficulty |
@@ -17,10 +19,6 @@ Each challenge focuses on one or more of the lessons. Some challenges involve ex
 | [Nexus Prime Bank](./challenges/challenge-05-nexus-prime.md)    | 🔴 Hard    |
 
 ---
-
-## 🏆 Challenges
-
-## Use of the Pro
 
 ### 🟢 [Challenge 1: The Chain Whisperer 🌌](./challenges/challenge-01-chain-whisperer.md)
 
