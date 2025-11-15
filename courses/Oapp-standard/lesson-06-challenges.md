@@ -24,7 +24,7 @@ Use of Claude, GPT, Cursor or other AI to complete the Challenges is absolutely 
 
 Master the ancient "Omnichain Echo Stone" by building a messenger that transforms messages as they travel between chains. Send "hello" and receive "🔮 [Arbitrum] HELLO WORLD" back!
 
-**Skills**: Basic OApp, Message Transformation, Auto-Response
+**Skills**: Basic OApp, Message Transformation
 
 [**Start Challenge →**](./challenges/challenge-01-chain-whisperer.md)
 
@@ -32,9 +32,11 @@ Master the ancient "Omnichain Echo Stone" by building a messenger that transform
 
 ### 🟢 [Challenge 2: The Quantum Thief 💎](./challenges/challenge-02-quantum-thief.md)
 
-A developer claims their cross-chain vault is "unbreakable" and left thousands of precious Labrys tokens as a challenge. Find the exploit and drain their vault's across all chains.
+A Rival OApp developer has created a "secure" vault that uses cross chain Oapp messaging to secure their tokens... or so they think. They're so confident that they've left 1000 Labrys tokens in thier main vault deployed on Base.
 
-**Already Deployed**: Vulnerable contracts on 3 testnets waiting to be exploited.
+“If you can drain our vault, the tokens are yours.”
+
+**Skills**: Cross-Chain Security
 
 [**Start Challenge →**](./challenges/challenge-02-quantum-thief.md)
 
