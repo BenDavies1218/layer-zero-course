@@ -147,7 +147,7 @@ oapp.transferOwnership(multisigAddress);
 
 ## Security Considerations
 
-### Always Validate Source
+### Origin Validation
 
 ```typescript
 function _lzReceive(
@@ -206,10 +206,11 @@ function _lzReceive(...) internal override {
 
 ## Next Steps
 
-- **Lesson 02**: Building and Deploy your first OApp
-- **Lesson 03**: Tackle some of the more advanced messaging use cases
-- **Lesson 04**: Learn the differences between EVM and Solana Oapps
-- **Lesson 05**: Complete all the challenges
+- **Lesson 02**: Building and Deploying Your First OApp
+- **Lesson 03**: ABA Messaging Pattern (Ping-Pong)
+- **Lesson 04**: Multichain Messaging (Batch Send Pattern)
+- **Lesson 05**: Interacting with Solana OApps
+- **Lesson 06**: Complete All the Challenges
 
 ## Resources
 

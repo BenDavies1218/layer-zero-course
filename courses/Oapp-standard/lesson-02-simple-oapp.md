@@ -228,57 +228,130 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
 }
 ```
 
-## Hardhat compile
+## Compile Your Contract
+
+Before deployment, compile your contract to verify there are no errors:
+
+```bash
+# Compile all contracts
+npx hardhat compile
+
+# If you need to clean and recompile
+npx hardhat clean && npx hardhat compile
+```
+
+This will:
+
+- Compile all Solidity files in `src/contracts/`
+- Generate TypeScript type definitions in `typechain-types/`
+- Create artifacts in `src/artifacts/`
 
 ## Deployment Process
 
-Deploying an OApp involves three steps:
+Deploying an OApp involves three main steps:
 
-1. Deploy the contract on each chain
-2. Configure peers (trusted remote contracts)
-3. Set enforced options (gas limits, etc.)
+1. **Deploy** the contract on each chain
+2. **Configure peers** (trusted remote contracts)
+3. **Set enforced options** (optional: gas limits, etc.)
 
-### Step 1: Deploy Script
+### Step 1: Configure the Deploy Script
 
-Its up to you I you would like to create your own script or use the ones that I have written.
+Open `src/scripts/deploy.ts` and update the contract name:
 
-Deployment Script Located "src/scripts/deploy.ts" the script is able to deploy any compiled contract, just replace the contract name with the Oapp contract you want to deploy. In our case it will SimpleMessenger.sol
+```typescript
+async function main() {
+  // Enter the contract name to deploy
+  const contractName = "SimpleMessenger"; // Update this line
+
+  const result = await deployOApp({
+    contractName,
+    constructorArgs: [], // Endpoint and owner are added automatically
+    verify: true, // Set to true to verify on block explorer
+  });
+}
+```
+
+**How it works:**
+
+- The script automatically injects the LayerZero endpoint address for the network
+- The deployer's address is automatically set as the contract owner
+- Optional: Enable contract verification on Etherscan
 
 ### Step 2: Deploy to Networks
 
-Deploy to two testnets (e.g., Sepolia and Arbitrum Sepolia):
+Deploy to two or more testnets. For example, Sepolia and Arbitrum Sepolia:
 
 ```bash
 # Deploy to Ethereum Sepolia
-npx hardhat run courses/omnichain-messaging/utils/deploy-simple-messenger.ts --network ethereum-sepolia
+npx hardhat run src/scripts/deploy.ts --network ethereum-sepolia
 
 # Deploy to Arbitrum Sepolia
-npx hardhat run courses/omnichain-messaging/utils/deploy-simple-messenger.ts --network arbitrum-sepolia
+npx hardhat run src/scripts/deploy.ts --network arbitrum-sepolia
 ```
 
-Save both addresses! You'll need them for peer configuration.
+**Important:** Save the deployed addresses! You'll see output like:
+
+```
+📋 Deployment Summary:
+   Contract: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+   Network: ethereum-sepolia
+   Chain ID: 11155111
+   Block: 5234567
+   Tx: 0xabc123...
+```
+
+Copy these addresses - you'll need them for the next step.
 
 ### Step 3: Configure Peers
 
-After deployment, you must set peers so contracts trust each other.
+After deploying to all desired networks, configure the peer relationships.
 
-Its up to you I you would like to create your own script or use the ones that I have written.
+Open `src/scripts/configure.ts` and update with your deployed addresses:
 
-Deployment Script Located "src/scripts/configure.ts" the script is able to deploy any compiled contract, just replace the contract name with the Oapp contract you want to deploy. In our case it will SimpleMessenger.sol
+```typescript
+async function main() {
+  // UPDATE THESE WITH YOUR DEPLOYED ADDRESSES
+  const deployments = {
+    "ethereum-sepolia": "0xYourSepoliaAddress",
+    "arbitrum-sepolia": "0xYourArbitrumAddress",
+    // Only include networks where you've deployed
+    "optimism-sepolia": "0x0000000000000000000000000000000000000000", // Leave as 0x0 if no contract was deployed to this network
+    "base-sepolia": "0x0000000000000000000000000000000000000000",
+    "polygon-amoy": "0x0000000000000000000000000000000000000000",
+  };
 
-Run on both networks:
+  // Enter the contract name to configure
+  const contractName = "SimpleMessenger"; // Update this line
+}
+```
+
+**Run the configuration on each network:**
 
 ```bash
 # Configure on Sepolia
-npx hardhat run courses/omnichain-messaging/utils/configure-peers.ts --network ethereum-sepolia
+npx hardhat run src/scripts/configure.ts --network ethereum-sepolia
 
 # Configure on Arbitrum Sepolia
-npx hardhat run courses/omnichain-messaging/utils/configure-peers.ts --network arbitrum-sepolia
+npx hardhat run src/scripts/configure.ts --network arbitrum-sepolia
 ```
+
+**What this does:**
+
+- Sets up trusted peer relationships between your contracts
+- Only includes networks with valid (non-zero) addresses
+- Skips peers that are already configured
+- Shows a summary of successful and failed configurations
+
+**Important:** You must run the configure script on **each network** where you deployed. For bidirectional messaging between Sepolia and Arbitrum, you need to configure peers on both chains:
+
+- On Sepolia: Sets Arbitrum contract as a trusted peer
+- On Arbitrum: Sets Sepolia contract as a trusted peer
 
 ## Sending Your First Cross-Chain Message
 
 Now that everything is deployed and configured, let's send a message!
+
+You have a many options for interacting with your contract this course shows you how to use the hardhat console, sometimes I prefer to use browser based GUI's to interact with the contract such as remix IDE or etherscan.
 
 ### Using Hardhat Console
 
@@ -350,107 +423,6 @@ console.log(`Messages received: ${count}`);
 const firstMessage = await messenger.messageHistory(1);
 console.log(`Message #1: ${firstMessage}`);
 ```
-
-## Understanding Gas and Options
-
-### Default Options
-
-When you pass `options = "0x"`, LayerZero uses default gas settings. This works for simple messages but might fail for complex operations.
-
-### Custom Options
-
-For more control, use `OptionsBuilder`:
-
-```typescript
-import { Options } from "@layerzerolabs/lz-v2-utilities";
-
-// Create options with 200k gas limit
-const options = Options.newOptions().addExecutorLzReceiveOption(200000, 0);
-
-// Send with custom options
-const tx = await messenger.sendMessage(dstEid, message, options.toHex(), {
-  value: fee.nativeFee,
-});
-```
-
-### Enforced Options
-
-As the contract owner, you can set minimum gas limits:
-
-```javascript
-import { ExecutorOptionType } from "@layerzerolabs/lz-v2-utilities";
-
-// Set enforced option: minimum 100k gas for all sends
-const enforcedOption = {
-  msgType: 1, // SEND type
-  options: Options.newOptions().addExecutorLzReceiveOption(100000, 0).toHex(),
-};
-
-await messenger.setEnforcedOptions([
-  {
-    eid: arbSepoliaEid,
-    msgType: 1,
-    options: enforcedOption.options,
-  },
-]);
-```
-
-Now all sends to Arbitrum Sepolia will use at least 100k gas, even if the caller provides less.
-
-## Testing
-
-Create `test/SimpleMessenger.test.ts`:
-
-```typescript
-import { expect } from "chai";
-import { ethers } from "hardhat";
-import { SimpleMessenger } from "../typechain-types";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-
-describe("SimpleMessenger", function () {
-  let messenger: SimpleMessenger;
-  let owner: SignerWithAddress;
-  let endpoint: string;
-
-  beforeEach(async function () {
-    [owner] = await ethers.getSigners();
-
-    // Mock endpoint address (in real tests, use a mock endpoint)
-    endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f";
-
-    const SimpleMessenger = await ethers.getContractFactory("SimpleMessenger");
-    messenger = await SimpleMessenger.deploy(endpoint, owner.address);
-    await messenger.deployed();
-  });
-
-  it("Should deploy with correct owner", async function () {
-    expect(await messenger.owner()).to.equal(owner.address);
-  });
-
-  it("Should start with zero messages", async function () {
-    expect(await messenger.messagesSent()).to.equal(0);
-    expect(await messenger.messagesReceived()).to.equal(0);
-  });
-
-  it("Should increment messagesSent when sending", async function () {
-    // Note: This will fail without a proper mock endpoint
-    // For real testing, use LayerZero's test utilities
-    const dstEid = 40231;
-    const message = "Test message";
-
-    // This is a simplified test - production tests need proper mocks
-    expect(await messenger.messagesSent()).to.equal(0);
-  });
-});
-```
-
-Run tests:
-
-```bash
-npx hardhat test
-```
-
-For comprehensive testing, use LayerZero's official test utilities with mock endpoints.
 
 ## Common Issues and Solutions
 
