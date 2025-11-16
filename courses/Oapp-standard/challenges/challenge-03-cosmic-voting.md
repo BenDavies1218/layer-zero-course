@@ -1,10 +1,10 @@
 # Challenge 3: Cosmic Council Voting 🗳️
 
-**Difficulty**: 🟡 Medium | **XP**: 200 | **Time**: 4-6 hours
+**Difficulty**: 🟡 Medium
 
 ## 📖 The Story
 
-The Cosmic Council governs the five blockchain realms (Sepolia, Arbitrum, Optimism, Base, Polygon). Council members are scattered across realms, but important decisions must be made together.
+The Cosmic Council governs the 3 blockchain realms (Sepolia, Arbitrum, Base). Council members are scattered across realms, but important decisions must be made together.
 
 You've been chosen to build the **Omnichain Governance Portal** - a cross-chain voting system where council members on any chain can vote, and results are aggregated by the ancient Oracle Chain (the coordinator).
 
@@ -16,8 +16,11 @@ Build a **CosmicCouncil** voting system that:
 2. 🗳️ **Vote anywhere** - Council members vote from their home realm
 3. 📊 **Central aggregation** - One "Oracle Chain" collects all votes
 4. 📢 **Broadcast results** - Final tally sent to all realms
-5. ⏰ **Time-bound** - Voting windows with strict deadlines
-6. 🚫 **No double voting** - Same address can't vote on multiple chains
+5. 🚫 **No double voting** - Same address can't vote on multiple chains
+
+## Tips
+
+A couple of tips to get started:
 
 ## 📜 Specifications
 
@@ -128,38 +131,13 @@ contract CosmicCouncil is OApp, OAppOptionsType3 {
 
 **Basic Requirements (140 XP):**
 
-- [ ] Deploy on 4+ chains with one designated as Oracle Chain
+- [ ] Deploy on atleast 3 chains with one being the Oracle Chain
 - [ ] Proposals created on Oracle Chain broadcast to all realms
 - [ ] Votes can be cast on any chain
 - [ ] Votes sync to Oracle Chain
 - [ ] Oracle Chain aggregates and broadcasts final results
 - [ ] Enforce voting deadlines
 - [ ] Prevent same address voting on multiple chains
-
-**Advanced Requirements (60 XP):**
-
-- [ ] Add proposal execution (trigger actions based on results)
-- [ ] Implement weighted voting (different addresses have different power)
-- [ ] Create delegation (vote on behalf of others)
-- [ ] Add proposal cancellation by proposer
-- [ ] Implement minimum quorum requirement
-- [ ] Create a dashboard view showing all active proposals
-
-## 🎮 Gamification Elements
-
-**Voting Power Levels:**
-
-- Cast 1 vote: **Citizen** badge 🎖️
-- Cast 5 votes: **Council Member** badge ⭐
-- Create proposal that passes: **Legislator** badge 📜
-- Vote on all 5 chains: **Realm Traveler** badge 🌍
-
-## 🎁 Rewards
-
-- **200 XP** for completion
-- **🗳️ Democracy Builder** achievement badge
-- **Bonus 100 XP** if you implement all advanced features
-- Special **Cosmic Council Founder NFT** (on-chain proof)
 
 ## 💡 Architecture Guide
 

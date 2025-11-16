@@ -19,10 +19,12 @@ In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, w
 ### How It Works
 
 1. **User calls `ping()` on Chain A**
+
    - OApp A sends "ping" message to Chain B
    - Message travels through LayerZero protocol
 
 2. **Chain B receives in `_lzReceive()`**
+
    - OApp B processes "ping" message
    - OApp B automatically sends "pong" back to Chain A
    - This is a **nested message** - receiving triggers sending
@@ -31,21 +33,32 @@ In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, w
    - OApp A processes the response
    - Completes the round-trip communication
 
-### Use Cases
+### Real-World Use Cases
 
-- **Request-Response**: Ask another chain for data and get an answer
-- **Cross-Chain Authentication**: Verify actions on another chain
-- **Acknowledgments**: Confirm receipt of important messages
-- **Bidirectional State Sync**: Keep state synchronized across chains
-- **Oracle Patterns**: Request data from another chain
+The ABA pattern enables powerful request-response flows across chains. Here are practical applications:
+
+#### 1. Multi-Chain Governance
+
+- **Case**: Main DAO on Ethereum requests vote tallies from satellite chains
+
+#### 2. Liquidity Availability Checks
+
+- **Case**: Bridge asks destination chain if sufficient liquidity exists
+
+#### 3. Remote Authentication
+
+- **Case**: App on Base requests authentication on a remote chain
+
+#### 5. Acknowledgment & Confirmation
+
+- **Case**: Managing State on multiply Changes
 
 ## Prerequisites
 
 Before starting:
 
-- Complete Lesson 02 (SimpleMessenger)
-- Understand the basic OApp send/receive pattern
-- Have testnet tokens on at least two chains
+- Complete [Lesson-01-basics](./lesson-01-basics.md)
+- Complete [Lesson-02-simple-Oapp](./lesson-02-simple-oapp.md)
 
 ## Contract Architecture
 
@@ -55,14 +68,26 @@ The ABA pattern requires:
 
 1. **Message Type Identification**: Distinguish between "ping" and "pong" messages
 2. **Conditional Response Logic**: Only respond to "ping", not to "pong" (avoid infinite loops!)
-3. **Fee Management**: The contract needs funds to send automatic responses
+3. **Gas Pre-Allocation**: Include pong options in ping payload and allocate gas upfront for round trip
 4. **Reentrancy Safety**: Calling `_lzSend()` from within `_lzReceive()` requires care
 
-## Step 1: Create PingPong.sol
+### ABA Gas Planning
 
-Create `src/contracts/Oapp/PingPong.sol`:
+For A → B → A messaging, the sender pays for the complete round trip in a single transaction:
 
-```solidity
+1. **A → B Delivery**: Cost to send ping from Chain A to Chain B
+2. **B Execution + Pong Gas**: Chain B needs gas to execute `_lzReceive()` AND send pong back
+3. **B → A Delivery**: Cost to send pong from Chain B back to Chain A
+
+**Key Insight**: Encode the pong options in your ping message, and use `lzReceiveOption` with native value to pre-allocate the pong fee.
+
+## Building the PingPong Contract
+
+### Step 1: Create Contract File and Imports
+
+Create `src/contracts/Oapp/PingPong.sol`
+
+```javascript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
@@ -71,251 +96,237 @@ import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OApp
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PingPong is OApp, OAppOptionsType3 {
-    /*//////////////////////////////////////////////////////////////
-                            STATE VARIABLES
-    //////////////////////////////////////////////////////////////*/
 
-    // Message types
+}
+```
+
+### Step 2: Add State Variables
+
+Add the message type enum and counters:
+
+```javascript
+    // Message types to distinguish ping from pong
     enum MessageType {
-        PING,
-        PONG
+        PING,  // Request message
+        PONG   // Response message
     }
 
     // Counters
-    uint256 public pingsSent;
-    uint256 public pingsReceived;
-    uint256 public pongsSent;
-    uint256 public pongsReceived;
+    uint256 public pingsSent;        // Total pings sent from this contract
+    uint256 public pingsReceived;    // Total pings received by this contract
+    uint256 public pongsSent;        // Total pongs sent from this contract
+    uint256 public pongsReceived;    // Total pongs received by this contract
 
     // Message type for enforced options
-    uint16 public constant SEND = 1;
+    uint16 public constant SEND = 1; // Message type identifier
+```
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
+### Step 3: Define Events
 
-    event PingSent(uint32 indexed dstEid, uint256 indexed pingId);
-    event PingReceived(uint32 indexed srcEid, uint256 indexed pingId);
-    event PongSent(uint32 indexed dstEid, uint256 indexed pongId);
-    event PongReceived(uint32 indexed srcEid, uint256 indexed pongId);
+Add events to track message lifecycle:
 
-    /*//////////////////////////////////////////////////////////////
-                            CONSTRUCTOR
-    //////////////////////////////////////////////////////////////*/
+```javascript
+    event PingSent(uint32 indexed dstEid, uint256 indexed pingId);       // Emitted when ping is sent
+    event PingReceived(uint32 indexed srcEid, uint256 indexed pingId);   // Emitted when ping is received
+    event PongSent(uint32 indexed dstEid, uint256 indexed pongId);       // Emitted when pong is sent
+    event PongReceived(uint32 indexed srcEid, uint256 indexed pongId);   // Emitted when pong is received
+```
 
+### Step 4: Add Constructor
+
+Initialize the contract with LayerZero endpoint:
+
+```javascript
     constructor(
-        address _endpoint,
-        address _owner
+        address _endpoint,  // LayerZero V2 endpoint address
+        address _owner      // Owner of the contract
     ) OApp(_endpoint, _owner) Ownable(_owner) {}
+```
 
-    /*//////////////////////////////////////////////////////////////
-                        EXTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
+### Step 5: Implement Ping Function
 
-    /**
-     * @notice Send a ping to another chain
-     * @dev The destination chain will automatically respond with pong
-     * @param _dstEid Destination chain endpoint ID
-     * @param _options Execution options for the message
-     */
+Add the main ping function:
+
+```javascript
     function ping(
-        uint32 _dstEid,
-        bytes calldata _options
+        uint32 _dstEid,                  // Destination chain endpoint ID
+        bytes calldata _sendOptions,     // Execution options for ping message
+        bytes calldata _returnOptions    // Execution options for automatic pong response
     ) external payable {
-        // Encode PING message with current ping count
-        bytes memory payload = abi.encode(MessageType.PING, pingsSent);
 
-        // Combine options
-        bytes memory options = combineOptions(_dstEid, SEND, _options);
+        // Encode the payload with:       ( Message Type ) (PingsSent)  (Return Options)
+        bytes memory payload = abi.encode(MessageType.PING, pingsSent, _returnOptions);
 
-        // Send the ping
+        // Combine enforced options with caller-provided options
+        bytes memory options = combineOptions(_dstEid, SEND, _sendOptions);
+
+        // Send using the OApp _lzSend method
         _lzSend(
-            _dstEid,
-            payload,
-            options,
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
+            _dstEid,                      // Destination endpoint ID
+            payload,                      // Encoded payload
+            options,                      // Execution sendOptions
+            MessagingFee(msg.value, 0),   // Fee in native gas token
+            payable(msg.sender)           // Refund address
         );
 
+        // Emit event and update counter
         emit PingSent(_dstEid, pingsSent);
         pingsSent++;
     }
+```
 
-    /**
-     * @notice Quote fee for sending a ping
-     * @param _dstEid Destination endpoint ID
-     * @param _options Execution options
-     * @param _payInLzToken Pay in LZ token
-     * @return fee The messaging fee
-     */
-    function quotePing(
-        uint32 _dstEid,
-        bytes calldata _options,
-        bool _payInLzToken
-    ) external view returns (MessagingFee memory fee) {
-        bytes memory payload = abi.encode(MessageType.PING, pingsSent);
-        bytes memory options = combineOptions(_dstEid, SEND, _options);
-        fee = _quote(_dstEid, payload, options, _payInLzToken);
+### Step 6: Add Quote Function
+
+Add fee estimation for round trip:
+
+```javascript
+    function quotePingPong(
+        uint32 _dstEid,                  // Destination endpoint ID
+        bytes calldata _sendOptions,     // Execution options for send _lzSend call
+        bytes calldata _returnOptions    // Execution options for return _lzSend call
+    ) external view returns (uint256 totalFee) {
+
+        // Quote the return cost (B → A)
+        bytes memory returnPayload = abi.encode(MessageType.PONG, 0);
+        bytes memory returnOpts = combineOptions(_dstEid, SEND, _returnOptions);
+        MessagingFee memory returnFee = _quote(_dstEid, returnPayload, returnOpts, false);
+
+        // Quote the send cost (A → B)
+        bytes memory sendPayload = abi.encode(MessageType.PING, pingsSent, _returnOptions);
+        bytes memory sendOpts = combineOptions(_dstEid, SEND, _sendOptions);
+        MessagingFee memory sendFee = _quote(_dstEid, sendPayload, sendOpts, false);
+
+        // Calculate total fee for complete round trip
+        // Total = send fee + return fee
+        // Note: return execution gas is included in sendOptions via lzReceiveOption
+        totalFee = sendFee.nativeFee + returnFee.nativeFee;
     }
+```
 
-    /**
-     * @notice Quote fee for automatic pong response
-     * @dev Used to estimate how much the contract needs to hold for auto-responses
-     * @param _dstEid Destination endpoint ID
-     * @param _options Execution options
-     * @param _payInLzToken Pay in LZ token
-     * @return fee The messaging fee
-     */
-    function quotePong(
-        uint32 _dstEid,
-        bytes calldata _options,
-        bool _payInLzToken
-    ) external view returns (MessagingFee memory fee) {
-        bytes memory payload = abi.encode(MessageType.PONG, pongsSent);
-        bytes memory options = combineOptions(_dstEid, SEND, _options);
-        fee = _quote(_dstEid, payload, options, _payInLzToken);
-    }
+**Why two quotes:**
 
-    /**
-     * @notice Fund the contract for automatic pong responses
-     * @dev Contract needs native tokens to send pongs automatically
-     */
-    function fundForResponses() external payable {
-        // Funds stored in contract balance for automatic pong sends
-    }
+- First quote: cost of pong message (B → A)
+- Second quote: cost of ping message (A → B)
+- Total fee covers complete round trip
 
-    /**
-     * @notice Withdraw excess funds (owner only)
-     * @param _amount Amount to withdraw
-     */
-    function withdraw(uint256 _amount) external onlyOwner {
-        payable(msg.sender).transfer(_amount);
-    }
+### Step 7: Implement \_lzReceive
 
-    /**
-     * @notice Get contract balance
-     * @return balance Current native token balance
-     */
-    function getBalance() external view returns (uint256 balance) {
-        return address(this).balance;
-    }
+Override the receive handler to process incoming messages:
 
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Handle incoming messages
-     * @dev Automatically responds to PING with PONG
-     * WARNING: This function sends messages - ensure contract has funds!
-     */
+```javascript
     function _lzReceive(
-        Origin calldata _origin,
-        bytes32 /*_guid*/,
-        bytes calldata _payload,
-        address /*_executor*/,
-        bytes calldata /*_extraData*/
+        Origin calldata _origin,       // Origin chain info (srcEid, sender, nonce)
+        bytes32 /*_guid*/,              // Unique message identifier
+        bytes calldata _payload,        // Encoded message data
+        address /*_executor*/,          // Executor address
+        bytes calldata /*_extraData*/   // Additional data
     ) internal override {
-        // Decode the message
-        (MessageType messageType, uint256 messageId) = abi.decode(
+        // Decode the message to get type, ID, and return options
+        (MessageType messageType, uint256 messageId, bytes memory returnOptions) = abi.decode(
             _payload,
-            (MessageType, uint256)
+            (MessageType, uint256, bytes)
         );
 
         if (messageType == MessageType.PING) {
-            // Received a PING - respond with PONG
+            // Increment the pingsReceived
             pingsReceived++;
+
+            // Emit the pingReceived to the source
             emit PingReceived(_origin.srcEid, messageId);
 
-            // Prepare PONG response
+            // Prepare pongPayload
             bytes memory pongPayload = abi.encode(MessageType.PONG, pongsSent);
 
-            // Use default options for response (or could use enforced options)
-            bytes memory options = combineOptions(_origin.srcEid, SEND, "");
+            // Use pong options that were encoded in the ping message
+            bytes memory options = combineOptions(_origin.srcEid, SEND, returnOptions);
 
-            // Calculate fee for response
-            MessagingFee memory fee = _quote(
-                _origin.srcEid,
-                pongPayload,
-                options,
-                false
-            );
-
-            // Ensure contract has enough balance
-            require(
-                address(this).balance >= fee.nativeFee,
-                "Insufficient balance for pong"
-            );
-
-            // Send PONG back to origin
+            // Send pong using pre-allocated gas from ping transaction
+            // msg.value contains the native fee allocated by sender
             _lzSend(
-                _origin.srcEid,
-                pongPayload,
-                options,
-                fee,
-                payable(address(this)) // Refund to contract
+                _origin.srcEid,              // Send back to origin chain
+                pongPayload,                 // Encoded pong message
+                options,                     // Use pre-provided pong options
+                MessagingFee(msg.value, 0),  // Use pre-allocated gas
+                payable(address(this))       // Refund to contract
             );
 
+            // Emit the pong sent
             emit PongSent(_origin.srcEid, pongsSent);
+            // Increment the pongs sent
             pongsSent++;
+
         } else if (messageType == MessageType.PONG) {
-            // Received a PONG - just record it, don't respond
+            // Increment the pongsReceived
             pongsReceived++;
+
+            // emit the pongReceived to the origin
             emit PongReceived(_origin.srcEid, messageId);
         }
     }
+```
+
+### Step 8: Add Helper Functions
+
+Add withdrawal and receive functions:
+
+```javascript
+    /**
+     * @notice Withdraw any accidental funds (owner only)
+     */
+    function withdraw() external onlyOwner {
+        payable(msg.sender).transfer(address(this).balance);  // Transfer balance to owner
+    }
 
     /**
-     * @notice Allow contract to receive native tokens
+     * @notice Allow contract to receive refunds
      */
-    receive() external payable {}
-}
+    receive() external payable {}  // Accept native token refunds from LayerZero
 ```
+
+**Purpose:**
+
+- `withdraw()`: Remove any accidentally sent funds
+- `receive()`: Accept refunds from LayerZero protocol
 
 ## Key Implementation Details
 
-### 1. Message Type Enum
+### 1. Encoding Return Options in Send
 
-```solidity
-enum MessageType {
-    PING,
-    PONG
-}
+```javascript
+// Ping payload includes pong options
+bytes memory payload = abi.encode(MessageType.PING, pingsSent, _returnOptions);
 ```
 
-This distinguishes between ping and pong messages, preventing infinite loops.
+### 2. Decoding in \_lzReceive
 
-### 2. Conditional Response Logic
-
-```solidity
-if (messageType == MessageType.PING) {
-    // Respond with PONG
-} else if (messageType == MessageType.PONG) {
-    // Just record, don't respond!
-}
+```javascript
+(MessageType messageType, uint256 messageId, bytes memory returnOptions) = abi.decode(_payload,(MessageType, uint256, bytes));
 ```
 
-**Critical**: Never respond to a PONG, or you'll create an infinite ping-pong loop!
+### 3. Using Pre-Allocated Gas
 
-### 3. Contract Funding
-
-```solidity
-function fundForResponses() external payable {}
-receive() external payable {}
-```
-
-The contract needs native tokens to pay for automatic pong responses.
-
-### 4. Balance Check
-
-```solidity
-require(
-    address(this).balance >= fee.nativeFee,
-    "Insufficient balance for pong"
+```javascript
+// msg.value contains the native fee allocated by the sender
+_lzSend(
+  _origin.srcEid,
+  pongPayload,
+  options,
+  MessagingFee(msg.value, 0),
+  payable(address(this))
 );
 ```
 
-Always verify the contract has enough funds before sending automatic responses.
+The pong uses gas that was allocated in the original ping transaction via `lzReceiveOption`.
+
+### 4. Preventing Infinite Loops
+
+```javascript
+if (messageType == MessageType.PING) {
+  // Send PONG
+} else if (messageType == MessageType.PONG) {
+  // Just record, DON'T respond!
+}
+```
 
 ## Compile and Deploy
 
@@ -367,54 +378,57 @@ npx hardhat run src/scripts/configure.ts --network arbitrum-sepolia
 
 ## Testing the ABA Pattern
 
-### Step 1: Fund the Destination Chain Contract
-
-Before pinging, fund the contract on Chain B so it can respond:
-
-```bash
-npx hardhat console --network arbitrum-sepolia
-```
-
-```javascript
-const PingPong = await ethers.getContractFactory("PingPong");
-const pingPong = PingPong.attach("0xYourArbitrumAddress");
-
-// Fund with 0.1 ETH for automatic pong responses
-const tx = await pingPong.fundForResponses({
-  value: ethers.utils.parseEther("0.1"),
-});
-await tx.wait();
-
-console.log("Contract funded!");
-console.log(
-  `Balance: ${ethers.utils.formatEther(await pingPong.getBalance())} ETH`
-);
-```
-
-### Step 2: Send a Ping from Chain A
+### Step 1: Build Options and Quote Fee
 
 ```bash
 npx hardhat console --network ethereum-sepolia
 ```
 
 ```javascript
+const { Options } = require("@layerzerolabs/lz-v2-utilities");
 const PingPong = await ethers.getContractFactory("PingPong");
 const pingPong = PingPong.attach("0xYourSepoliaAddress");
 
-// Quote the ping fee
 const arbSepoliaEid = 40231;
-const options = "0x";
-const fee = await pingPong.quotePing(arbSepoliaEid, options, false);
+const sepoliaEid = 40161;
 
-console.log(`Ping fee: ${ethers.utils.formatEther(fee.nativeFee)} ETH`);
+// 1. Build pong options (B → A)
+const returnOptions = Options.newOptions()
+  .addExecutorLzReceiveOption(100000, 0)
+  .toHex();
 
-// Send ping
-const tx = await pingPong.ping(arbSepoliaEid, options, {
-  value: fee.nativeFee,
+// 2. Quote pong cost
+const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
+console.log(`Pong fee: ${ethers.utils.formatEther(pongFee.nativeFee)} ETH`);
+
+// 3. Build ping options with pong gas pre-allocated
+const sendOptions = Options.newOptions()
+  .addExecutorLzReceiveOption(
+    150000, // Gas for executing _lzReceive + sending pong
+    pongFee.nativeFee // Native fee for pong delivery
+  )
+  .toHex();
+
+// 4. Quote total ping-pong round trip
+const totalFee = await pingPong.quotePingPong(
+  arbSepoliaEid,
+  sendOptions,
+  returnOptions
+);
+console.log(`Total round trip fee: ${ethers.utils.formatEther(totalFee)} ETH`);
+```
+
+### Step 2: Send Ping with Pre-Allocated Gas
+
+```javascript
+// Send ping with complete round trip payment
+const tx = await pingPong.ping(arbSepoliaEid, sendOptions, returnOptions, {
+  value: totalFee,
 });
 
 console.log(`Ping sent! Tx: ${tx.hash}`);
 await tx.wait();
+console.log("✅ Ping sent with gas pre-allocated for automatic pong!");
 ```
 
 ### Step 3: Track the Messages
@@ -422,6 +436,7 @@ await tx.wait();
 Go to [LayerZero Scan](https://layerzeroscan.com) and enter your transaction hash.
 
 You should see:
+
 1. **First message**: Ping from Sepolia to Arbitrum (~2-5 minutes)
 2. **Second message**: Automatic pong from Arbitrum back to Sepolia (~2-5 minutes)
 
@@ -449,49 +464,91 @@ console.log(`Pings received: ${pings}`); // Should be 1
 console.log(`Pongs sent: ${pongs}`); // Should be 1
 ```
 
-## Advanced: Setting Enforced Options
+### Understanding ABA Gas Requirements
 
-To ensure automatic pong responses have enough gas:
+For a complete A → B → A flow, you need to pay for:
+
+1. **A → B delivery**: Message delivery from Chain A to Chain B
+2. **B → A gas allocation**: Gas for Chain B to execute `_lzReceive()` AND send the return message
+3. **B → A delivery**: Message delivery from Chain B back to Chain A
+
+**Key Insight**: The sender pays for the entire round trip upfront by:
+
+- Encoding pong options in the ping payload
+- Using `lzReceiveOption` with native value to pre-allocate gas for the pong message
+- Calling `quotePingPong()` to calculate the total cost before sending
+
+**Gas Calculation Example:**
 
 ```javascript
-const Options = require("@layerzerolabs/lz-v2-utilities").Options;
+const { Options } = require("@layerzerolabs/lz-v2-utilities");
 
-// Set minimum 150k gas for automatic responses
-const enforcedOptions = Options.newOptions()
-  .addExecutorLzReceiveOption(150000, 0)
+// 1. Build pong options (B → A)
+const returnOptions = Options.newOptions()
+  .addExecutorLzReceiveOption(100000, 0)
   .toHex();
 
-await pingPong.setEnforcedOptions([
-  {
-    eid: sepoliaEid, // For pongs back to Sepolia
-    msgType: 1,
-    options: enforcedOptions,
-  },
-]);
+// 2. Quote the pong message cost
+const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
+
+// 3. Build ping options with pong gas pre-allocated
+const sendOptions = Options.newOptions()
+  .addExecutorLzReceiveOption(
+    150000, // Gas for executing _lzReceive + sending pong
+    pongFee.nativeFee // Native fee for pong message delivery
+  )
+  .toHex();
+
+// 4. Quote total round trip and send
+const totalFee = await pingPong.quotePingPong(
+  arbSepoliaEid,
+  sendOptions,
+  returnOptions
+);
+
+await pingPong.ping(arbSepoliaEid, sendOptions, returnOptions, {
+  value: totalFee,
+});
 ```
 
 ## Common Issues and Solutions
 
-### Issue 1: "Insufficient balance for pong"
+### Issue 1: "Insufficient fee for pong"
 
-**Problem**: Contract runs out of funds for automatic responses.
+**Problem**: Pong execution fails due to insufficient gas allocation in ping.
 
-**Solution**: Fund the contract on the destination chain:
+**Solution**: Increase the native value in `lzReceiveOption`:
 
 ```javascript
-await pingPong.fundForResponses({ value: ethers.utils.parseEther("0.1") });
+// Increase native fee for pong
+const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
+
+const sendOptions = Options.newOptions()
+  .addExecutorLzReceiveOption(
+    200000, // Increase execution gas
+    pongFee.nativeFee // Ensure sufficient native fee
+  )
+  .toHex();
 ```
 
 ### Issue 2: Pong never arrives
 
-**Problem**: Not enough gas for destination execution.
+**Problem**: Not enough gas allocated in ping options for destination execution.
 
-**Solution**: Increase gas in enforced options or when sending ping:
+**Solution**: Calculate proper gas requirements and use `quotePingPong()`:
 
 ```javascript
-const options = Options.newOptions()
-  .addExecutorLzReceiveOption(200000, 0)
-  .toHex();
+// Always quote the full round trip
+const totalFee = await pingPong.quotePingPong(
+  arbSepoliaEid,
+  sendOptions,
+  returnOptions
+);
+
+// Send with quoted fee
+await pingPong.ping(arbSepoliaEid, sendOptions, returnOptions, {
+  value: totalFee,
+});
 ```
 
 ### Issue 3: Infinite loop
@@ -500,12 +557,23 @@ const options = Options.newOptions()
 
 **Solution**: Only respond to PING messages:
 
-```solidity
+```javascript
 if (messageType == MessageType.PING) {
-    // Send PONG
+  // Send PONG
 } else if (messageType == MessageType.PONG) {
-    // DO NOT send anything - just record!
+  // DO NOT send anything - just record!
 }
+```
+
+### Issue 4: Transaction reverts with "Insufficient msg.value"
+
+**Problem**: Not sending enough value to cover ping delivery + pong allocation.
+
+**Solution**: Always use the `quotePingPong()` result:
+
+```javascript
+const totalFee = await pingPong.quotePingPong(dstEid, sendOpts, returnOpts);
+await pingPong.ping(dstEid, sendOpts, returnOpts, { value: totalFee });
 ```
 
 ## Security Considerations
@@ -513,13 +581,14 @@ if (messageType == MessageType.PING) {
 ### 1. Reentrancy
 
 Calling `_lzSend()` from within `_lzReceive()` is generally safe because:
+
 - State is updated before the call
 - LayerZero Endpoint is trusted
 - No external untrusted calls are made
 
 However, always follow checks-effects-interactions:
 
-```solidity
+```javascript
 // ✅ GOOD
 pingsReceived++;  // Update state first
 emit PingReceived(_origin.srcEid, messageId);
@@ -530,43 +599,60 @@ _lzSend(...);  // External call first
 pingsReceived++;  // State update after
 ```
 
-### 2. Funding Requirements
+### 2. Gas Validation
 
-```solidity
-require(
-    address(this).balance >= fee.nativeFee,
-    "Insufficient balance for pong"
-);
+Always validate that msg.value in `_lzReceive()` is sufficient:
+
+```javascript
+// Calculate required fee
+MessagingFee memory fee = _quote(_origin.srcEid, payload, options, false);
+
+// Verify pre-allocated gas is sufficient
+require(msg.value >= fee.nativeFee, "Insufficient gas for pong");
 ```
 
-Always check contract balance before automatic sends to prevent reverts.
+### 3. Message Type Validation
 
-### 3. Gas Limits
+Critical: Prevent infinite loops by validating message types:
 
-Automatic responses need sufficient gas. Set enforced options as a safety net:
-
-```solidity
-// Minimum 100k gas for responses
-setEnforcedOptions([...]);
-```
-
-### 4. Withdrawal Protection
-
-```solidity
-function withdraw(uint256 _amount) external onlyOwner {
-    payable(msg.sender).transfer(_amount);
+```javascript
+if (messageType == MessageType.PING) {
+  // Only respond to PING, never to PONG
+  _sendPong(_origin.srcEid, returnOptions);
+} else if (messageType == MessageType.PONG) {
+  // Just record, never respond to prevent loop
+  pongsReceived++;
 }
 ```
 
-Only owner can withdraw funds to prevent drainage attacks.
+### 4. Options Validation
+
+Validate return options decoded from payload to prevent malicious gas allocation:
+
+```javascript
+// Decode return options from payload
+(, , bytes memory returnOptions) = abi.decode(_payload, (MessageType, uint256, bytes));
+
+// Optional: Validate options are within acceptable bounds
+// This prevents sender from encoding malicious or excessive gas requirements
+```
 
 ## Monitoring and Debugging
 
-### Check Contract Balance
+### Track Message Counts
 
 ```javascript
-const balance = await pingPong.getBalance();
-console.log(`Contract balance: ${ethers.utils.formatEther(balance)} ETH`);
+// On source chain (Sepolia)
+const pingsSent = await pingPong.pingsSent();
+const pongsReceived = await pingPong.pongsReceived();
+console.log(`Pings sent: ${pingsSent}`);
+console.log(`Pongs received: ${pongsReceived}`);
+
+// On destination chain (Arbitrum)
+const pingsReceived = await pingPong.pingsReceived();
+const pongsSent = await pingPong.pongsSent();
+console.log(`Pings received: ${pingsReceived}`);
+console.log(`Pongs sent: ${pongsSent}`);
 ```
 
 ### Monitor Events
@@ -582,15 +668,32 @@ pingPong.on("PongReceived", (srcEid, pongId) => {
 });
 ```
 
-## Exercise: Extend the Pattern
+### Debug Gas Issues
+
+```javascript
+// Quote individual components
+const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
+console.log(
+  `Pong delivery fee: ${ethers.utils.formatEther(pongFee.nativeFee)}`
+);
+
+const totalFee = await pingPong.quotePingPong(
+  arbSepoliaEid,
+  sendOptions,
+  returnOptions
+);
+console.log(`Total round trip: ${ethers.utils.formatEther(totalFee)}`);
+```
+
+## Advanced
 
 Try implementing these enhancements:
 
 1. **Timed Responses**: Add timestamps to track round-trip time
 2. **Multi-Hop**: A → B → C → A pattern
-3. **Conditional Pong**: Only respond if certain conditions are met
-4. **Data Requests**: Send data in ping, get calculations in pong
-5. **Rate Limiting**: Limit pongs per time period to prevent spam
+3. **Conditional Return**: Only respond if certain conditions are met
+4. **Data Requests**: Send data in send, get calculations in return
+5. **Rate Limiting**: Limit returns per time period to prevent spam
 
 ## Key Takeaways
 
@@ -598,21 +701,21 @@ Try implementing these enhancements:
 
 ✅ Distinguish message types to prevent infinite loops
 
-✅ Destination contract needs funding for automatic responses
+✅ Encode pong options in ping payload for automatic responses
 
-✅ Always check contract balance before sending automatic messages
+✅ Use `lzReceiveOption` with native value to pre-allocate pong gas
 
-✅ Use enforced options to guarantee sufficient gas for responses
+✅ Sender pays for entire round trip upfront - no contract funding needed
+
+✅ Always quote with `quotePingPong()` to calculate total costs
 
 ✅ Follow checks-effects-interactions pattern for safety
 
-✅ Monitor contract balance and events for reliable operation
+✅ Validate message types and gas allocations in `_lzReceive()`
 
 ## Next Steps
 
-- **Lesson 04**: Build a multichain messaging OApp that broadcasts to multiple chains
-- **Lesson 05**: Learn how to interact with Solana OApps
-- **Challenges**: Test your skills with advanced exercises
+- **Lesson 04**: Build a multichain messaging OApp that broadcasts to multiple chains instead of just 2
 
 ## Resources
 

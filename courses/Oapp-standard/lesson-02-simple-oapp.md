@@ -8,32 +8,26 @@ In this lesson, you'll build a simple cross-chain messaging application using La
 
 - Sends string messages to the same contract on another chain
 - Receives and stores messages from other chains
-- Tracks message history and counts
-- Demonstrates the complete OApp lifecycle
-
-**There is an example contract located** - @/src/contracts/examples/Oapp/ExampleSimpleMessenger.sol
-
-Should you require the complete contract example
+- Tracks message history and counts sent and received messages
 
 ## Prerequisites
 
 Before starting, ensure you have:
 
 - run pnpm install
-- Setup the .env
-- RPC endpoints configured (we're using Alchemy)
+- populated the .env file
 
 ## Understanding the Contract Structure
 
 Every OApp needs three core components:
 
 1. **Inheritance**: Extend `OApp` and `OAppOptionsType3`
-2. **Send Logic**: Implement functions that call `_lzSend()`
-3. **Receive Logic**: Override `_lzReceive()` to handle incoming messages
+2. **Send Logic**: Implement a function that calls `_lzSend()`
+3. **Receive Logic**: Override `_lzReceive()` to handle incoming messages send from the executor
 
 ## Step 1. Create a SimpleMessager.sol contract
 
-make sure its located in the "src/contracts" directory, hardhat by default will search are .sol files in the sub directorys
+Make sure its located in the "src/contracts" directory, (hardhat by default will compile all .sol files in the sub directorys)
 
 ```typescript
 // SPDX-License-Identifier: MIT
@@ -54,7 +48,7 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
   string public lastMessage; // Store the last received message
   uint256 public messagesSent; // Track total messages sent
   uint256 public messagesReceived; // Track total messages received
-  mapping(uint256 => string) public messageHistory; // Message history (optional, costs more gas)
+  mapping(uint256 => string) public messageHistory; // Message history
   uint16 public constant SEND = 1; // Define message type for enforced options
 
   // Events for tracking
@@ -66,8 +60,8 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
 
 ```typescript
   constructor(
-        address _endpoint,
-        address _owner
+        address _endpoint, // Layerzero V2 endpoint address
+        address _owner // Owner of the contract
     ) OApp(_endpoint, _owner) Ownable(_owner) {}
 ```
 
@@ -86,12 +80,13 @@ function sendMessage(
   bytes calldata _options // Execution options (gas limit, etc.)
   ) external payable {
 
-    bytes memory _payload = abi.encode(_message); // Encode the message
+    // Encode the message
+    bytes memory _payload = abi.encode(_message);
 
     // Combine enforced options with caller-provided options
     bytes memory options = combineOptions(_dstEid, SEND, _options);
 
-    // Send the message
+    // Send the message with the Oapp _lzSend method
     _lzSend(
         _dstEid, // Destination endpoint ID
         _payload, // Encoded message
@@ -100,9 +95,10 @@ function sendMessage(
         payable(msg.sender) // Refund address
     );
 
-    // Update state
+    // Update the message sent state
     messagesSent++;
 
+    // emit the messageSent to the destination chain
     emit MessageSent(_dstEid, _message, msg.value);
 }
 ```
@@ -118,9 +114,12 @@ function quote(
     bytes calldata _options, // Execution options (gas limit, etc.)
     bool _payInLzToken // Is it being payed in LZO Token
 ) external view returns (MessagingFee memory fee) {
+    // encode the message
     bytes memory _payload = abi.encode(_message);
+    // Create the options object
     bytes memory options = combineOptions(_dstEid, SEND, _options);
 
+    // call the quote method of the Oapp _quote method
     fee = _quote(_dstEid, _payload, options, _payInLzToken);
 }
 ```
@@ -140,91 +139,17 @@ function _lzReceive(
     // Decode the message
     string memory message = abi.decode(_payload, (string));
 
-    // Update state
+    // Update the last message
     lastMessage = message;
+
+    // increment the messageRecieved by 1
     messagesReceived++;
+
+    // Save the message to the message history
     messageHistory[messagesReceived] = message;
 
+    // emit the messageReceive to the origin chain
     emit MessageReceived(message, _origin.srcEid, _origin.sender);
-}
-```
-
-### Step 5: Complete Contract
-
-Here's the complete `SimpleMessenger.sol`:
-
-```typescript
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.22;
-
-import { OApp, Origin, MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-
-contract SimpleMessenger is OApp, OAppOptionsType3 {
-    // State variables
-    string public lastMessage;
-    uint256 public messagesSent;
-    uint256 public messagesReceived;
-    mapping(uint256 => string) public messageHistory;
-
-    uint16 public constant SEND = 1;
-
-    // Events
-    event MessageSent(uint32 dstEid, string message, uint256 fee);
-    event MessageReceived(string message, uint32 srcEid, bytes32 sender);
-
-    constructor(
-        address _endpoint,
-        address _owner
-    ) OApp(_endpoint, _owner) Ownable(_owner) {}
-
-    function sendMessage(
-        uint32 _dstEid,
-        string calldata _message,
-        bytes calldata _options
-    ) external payable {
-        bytes memory _payload = abi.encode(_message);
-        bytes memory options = combineOptions(_dstEid, SEND, _options);
-
-        _lzSend(
-            _dstEid,
-            _payload,
-            options,
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
-        );
-
-        messagesSent++;
-        emit MessageSent(_dstEid, _message, msg.value);
-    }
-
-    function quote(
-        uint32 _dstEid,
-        string calldata _message,
-        bytes calldata _options,
-        bool _payInLzToken
-    ) external view returns (MessagingFee memory fee) {
-        bytes memory _payload = abi.encode(_message);
-        bytes memory options = combineOptions(_dstEid, SEND, _options);
-        fee = _quote(_dstEid, _payload, options, _payInLzToken);
-    }
-
-    function _lzReceive(
-        Origin calldata _origin,
-        bytes32,
-        bytes calldata _payload,
-        address,
-        bytes calldata
-    ) internal override {
-        string memory message = abi.decode(_payload, (string));
-
-        lastMessage = message;
-        messagesReceived++;
-        messageHistory[messagesReceived] = message;
-
-        emit MessageReceived(message, _origin.srcEid, _origin.sender);
-    }
 }
 ```
 
@@ -245,6 +170,10 @@ This will:
 - Compile all Solidity files in `src/contracts/`
 - Generate TypeScript type definitions in `typechain-types/`
 - Create artifacts in `src/artifacts/`
+
+## Should you require the complete contract example
+
+There is the complete code here - [View Here](../../src/contracts/lessons/Oapp/ExampleSimpleMessenger.sol)
 
 ## Deployment Process
 

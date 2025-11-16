@@ -1,291 +1,78 @@
-# LayerZero V2 OApp Course
+# Quick Start: Get Started building Omnichain Apps in 5 minutes
 
-Learn to build cross-chain applications with LayerZero V2. This comprehensive course covers omnichain messaging, token transfers, and advanced patterns for building production-ready decentralized applications that span multiple blockchains.
+This course will get you from zero to cross-chain hero using LayerZero V2 Protocol.
 
-## What You'll Learn
+## Prerequisites Check
 
-- **Omnichain Messaging**: Send arbitrary messages between chains
-- **OApp Standard**: Build contracts using LayerZero's OApp pattern
-- **Cross-Chain Architecture**: Understand endpoints, DVNs, and executors
-- **Gas Optimization**: Manage fees and execution options
-- **Security Best Practices**: Validate sources, handle errors, protect against attacks
-- **Production Deployment**: Deploy and configure multi-chain applications
+Before you start, make sure you have:
 
-## Prerequisites
+- ✅ Node.js v22 installed and running ([Download here](https://nodejs.org/)) hardhat seems to not like the newest version of node.
+- ✅ pnpm installed (`pnpm install -g pnpm`)
 
-Before starting, ensure you have:
+## Repository Structure
 
-- **Node.js v22 (LTS) installed** - [Download here](https://nodejs.org/)
-- **pnpm** package manager - Install with `npm install -g pnpm`
-- **A wallet** with testnet tokens (Sepolia ETH, Arbitrum Sepolia ETH, etc.)
-- **Your private key** ready for deployment
-- **Alchemy API key** (free tier works) - [Sign up here](https://www.alchemy.com/)
+Here's what you'll find in this repository:
 
-### Get Testnet Tokens
+```text
+layer-zero-course/
+├── courses/
+│   ├── Oapp-standard/
+│   ├── OFT-standard (Coming Soon)/
+│   ├── ONFT-standard (Coming Soon)/
+│   └── Ovault-standard (Coming Soon)/
+├── src/
+│   ├── contracts/
+│   │   └── lessons/Oapp/ # Oapp Example lesson contracts and challenge contracts
+│   ├── scripts/
+│   │   ├── deploy.ts      # Generic Oapp deployment script
+│   │   └── configure.ts   # Generic Peer configuration script
+│   ├── utils/
+│   │   ├── deploy-oapp.ts              # Deployment utilities
+│   │   └── configure-oapp-peers.ts     # Peer configuration utilities
+│   ├── tests/ # Contract test
+│   └── diagrams/ # course images and diagrams
+├── hardhat.config.ts                 # Hardhat configuration
+├── package.json                      # Dependencies
+├── tsconfig.json                     # TypeScript configuration
+├── .env.example                      # Environment template
+├── QUICKSTART.md                     # This file
+└── LICENSE                           # MIT License
+```
 
-- [Sepolia Faucet](https://sepoliafaucet.com/)
-- [Alchemy Faucets](https://www.alchemy.com/faucets)
-- [Chainlink Faucets](https://faucets.chain.link/)
+**Key Directories:**
 
-## Project Setup
+- `src/contracts/` - Where you build your contracts
+- `src/scripts/` - Deployment and configuration scripts
+- `courses/` - Step-by-step lessons and challenges
 
-### 1. Install Dependencies
+## Step 1: Install Dependencies
 
 ```bash
-# Clone the repository (if applicable)
-git clone <your-repo-url>
-cd layer-zero-course
-
-# Install all dependencies
+# Install all project dependencies
 pnpm install
 ```
 
-### 2. Configure Environment
+## Step 2: Configure Environment
+
+Create your `.env` file from the template:
 
 ```bash
-# Copy the environment template
+# Copy the example file
 cp .env.example .env
-
-# Edit .env and add your credentials
 ```
 
-Your `.env` file should look like:
+**Important**: The LayerZero V2 endpoint address is already configured for all testnets.
 
-```bash
-# Deployment account
-PRIVATE_KEY=0x...
-
-# Alchemy RPC endpoints
-ALCHEMY_API_KEY=your_alchemy_api_key_here
-
-# Optional: Contract verification
-ETHERSCAN_API_KEY=your_etherscan_api_key_here
-```
-
-### 3. Verify Setup
-
-```bash
-# Compile contracts
-npx hardhat compile
-
-# Run tests
-npx hardhat test
-
-# Check network connectivity
-npx hardhat run --network ethereum-sepolia
-```
-
-## Quick Start
-
-Get your first cross-chain message working in 5 minutes:
-
-👉 **See [QUICKSTART.md](./QUICKSTART.md)** for step-by-step instructions.
-
-## Course Structure
-
-### Omnichain Messaging
-
-Learn the fundamentals of LayerZero cross-chain messaging.
-
-**Lessons:**
-
-- [Lesson 01 - LayerZero Basics](./courses/omnichain-messaging/lesson-01-basics.md) - Protocol architecture and core concepts
-- [Lesson 02 - Building Your First OApp](./courses/omnichain-messaging/lesson-02-simple-oapp.md) - Deploy a simple cross-chain messenger
-- Lesson 03 - Advanced Patterns _(coming soon)_
-
-**Contracts:**
-
-- [SimpleMessenger.sol](./src/contracts/omnichain-messaging/SimpleMessenger.sol) - Basic cross-chain messaging
-- [MyOApp.sol](./src/contracts/omnichain-messaging/MyOApp.sol) - Complete OApp example
-
-**Scripts:**
-
-- [Deploy Script](./courses/omnichain-messaging/utils/deploy-simple-messenger.ts)
-- [Configure Peers](./courses/omnichain-messaging/utils/configure-peers.ts)
-
-### Coming Soon
-
-- **Omnichain Tokens (OFT)** - Cross-chain fungible tokens
-- **Composed Calls** - Trigger external contracts on destination
-- **Rate Limiting** - Control message frequency
-- **Batch Operations** - Optimize multi-message patterns
-
-## Supported Networks
-
-This course uses the following testnets:
-
-| Network          | Endpoint ID | Get Testnet Tokens                                         |
-| ---------------- | ----------- | ---------------------------------------------------------- |
-| Ethereum Sepolia | 40161       | [Faucet](https://sepoliafaucet.com/)                       |
-| Arbitrum Sepolia | 40231       | [Faucet](https://www.alchemy.com/faucets/arbitrum-sepolia) |
-| Optimism Sepolia | 40232       | [Faucet](https://www.alchemy.com/faucets/optimism-sepolia) |
-| Base Sepolia     | 40245       | [Faucet](https://www.alchemy.com/faucets/base-sepolia)     |
-| Polygon Amoy     | 40267       | [Faucet](https://www.alchemy.com/faucets/polygon-amoy)     |
-
-## Project Structure
-
-```
-layer-zero-course/
-├── courses/
-│   └── omnichain-messaging/
-│       ├── lesson-01-basics.md           # Protocol fundamentals
-│       ├── lesson-02-simple-oapp.md      # First OApp tutorial
-│       ├── challenges/                    # Practice exercises
-│       └── utils/                         # Deployment scripts
-│           ├── deploy-simple-messenger.ts
-│           ├── configure-peers.ts
-│           └── README.md
-├── src/
-│   ├── contracts/
-│   │   └── omnichain-messaging/
-│   │       ├── SimpleMessenger.sol       # Lesson 02 contract
-│   │       ├── MyOApp.sol                # Reference implementation
-│   │       └── README.md
-│   └── tests/
-│       └── SimpleMessenger.test.ts       # Unit tests
-├── diagrams/                              # Visual guides
-│   ├── layerzero-flow.svg
-│   ├── aba-pattern.svg
-│   ├── batch-send-pattern.svg
-│   ├── message-lifecycle.svg
-│   └── fee-payment-flow.svg
-├── hardhat.config.ts                      # Hardhat configuration
-├── package.json                           # Dependencies
-├── .env.example                           # Environment template
-├── QUICKSTART.md                          # 5-minute setup guide
-└── README.md                              # This file
-```
-
-## Development Workflow
-
-### Compile Contracts
+## Step 3: Run hardhart Compile
 
 ```bash
 npx hardhat compile
 ```
 
-### Run Tests
+## Step 4
 
-```bash
-# Run all tests
-npx hardhat test
+**Learn the fundamentals**
 
-# Run specific test
-npx hardhat test test/SimpleMessenger.test.ts
-
-# Run with gas reporting
-REPORT_GAS=true npx hardhat test
-```
-
-### Deploy to Testnet
-
-```bash
-# Deploy SimpleMessenger to Sepolia
-npx hardhat run courses/omnichain-messaging/utils/deploy-simple-messenger.ts --network ethereum-sepolia
-
-# Deploy to Arbitrum Sepolia
-npx hardhat run courses/omnichain-messaging/utils/deploy-simple-messenger.ts --network arbitrum-sepolia
-```
-
-### Configure Cross-Chain
-
-```bash
-# Set up peer relationships
-npx hardhat run courses/omnichain-messaging/utils/configure-peers.ts --network ethereum-sepolia
-npx hardhat run courses/omnichain-messaging/utils/configure-peers.ts --network arbitrum-sepolia
-```
-
-### Interact with Contracts
-
-```bash
-# Open Hardhat console
-npx hardhat console --network ethereum-sepolia
-
-# In the console:
-const messenger = await ethers.getContractAt("SimpleMessenger", "0xYourAddress");
-const fee = await messenger.quote(40231, "Hello!", "0x", false);
-await messenger.sendMessage(40231, "Hello!", "0x", {value: fee.nativeFee});
-```
-
-## Tracking Messages
-
-Track your cross-chain messages in real-time:
-
-🔍 **[LayerZero Scan](https://layerzeroscan.com)** - Paste your transaction hash
-
-Expected timeline:
-
-- **Send**: Instant (on-chain transaction)
-- **Verification**: 1-5 minutes (DVN confirmations)
-- **Execution**: 1-2 minutes (after verification)
-
-## Troubleshooting
-
-### Common Issues
-
-**"Insufficient fee"**
-
-- Always call `quote()` before sending
-- Use the exact fee returned: `{value: fee.nativeFee}`
-
-**"Peer not set"**
-
-- Run `configure-peers.ts` on BOTH chains
-- Verify with: `messenger.peers(dstEid)`
-
-**"Out of gas" on destination**
-
-- Increase gas in options
-- Set enforced options with higher gas limits
-
-**Message stuck in verification**
-
-- Check [LayerZero Scan](https://layerzeroscan.com)
-- First messages can take 5-10 minutes
-- Verify DVN configuration
-
-**Compilation errors**
-
-- Ensure Node.js v22 is installed
-- Clear cache: `npx hardhat clean`
-- Reinstall: `rm -rf node_modules && pnpm install`
-
-## Resources
-
-### Official LayerZero
-
-- [LayerZero V2 Documentation](https://docs.layerzero.network/v2)
-- [OApp Standard](https://docs.layerzero.network/v2/developers/evm/oapp/overview)
-- [Endpoint Addresses](https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts)
-- [GitHub Repository](https://github.com/LayerZero-Labs/devtools)
-
-### Tools
-
-- [LayerZero Scan](https://layerzeroscan.com) - Message tracking
-- [Hardhat](https://hardhat.org/) - Development environment
-- [Alchemy](https://www.alchemy.com/) - RPC provider
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Create a feature branch
-2. Make your changes
-3. Add tests if applicable
-4. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-Built with LayerZero V2, leveraging:
-
-- [@layerzerolabs/oapp-evm](https://www.npmjs.com/package/@layerzerolabs/oapp-evm)
-- [@layerzerolabs/lz-evm-protocol-v2](https://www.npmjs.com/package/@layerzerolabs/lz-evm-protocol-v2)
-- [@openzeppelin/contracts](https://www.npmjs.com/package/@openzeppelin/contracts)
+Start with the Oapp Standard [Lesson 01 - LayerZero Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
 ---
-
-**Ready to build?** Start with [QUICKSTART.md](./QUICKSTART.md) or dive into [Lesson 01](./courses/omnichain-messaging/lesson-01-basics.md)!

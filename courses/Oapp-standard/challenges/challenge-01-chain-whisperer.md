@@ -1,4 +1,4 @@
-# Challenge 1: The Chain Whisperer 🌌
+# Challenge 1: Chain Whisperer 🌌
 
 **Difficulty**: 🟢 Easy
 
@@ -78,7 +78,7 @@ echoTransformer.whisper(40231, "third message", options); ✅ Success
 **Input**:
 
 ```text
-echoTransformer.getTransformationHistory();
+echoTransformer.getMessageHistory();
 ```
 
 **Output**:
@@ -106,9 +106,9 @@ echoTransformer.getTransformationHistory();
 
 - [ ] Deploy on 2 chains
 - [ ] Implement leet speak char transformations (a→4, e→3, i→1, o→0, t→7)
-- [ ] echo responses with chain name prefix "[ChainName]"
-- [ ] Store complete echo history with originalMessage, transformedMessage, timestamp, sourceChain, echoChain
-- [ ] Implement 60-second cooldown between messages
+- [ ] message should be prefixed with the chain they are being sent from "[ChainName]"
+- [ ] Store successful message history with originalMessage, transformedMessage, timestamp, sourceChain, echoChain
+- [ ] Implement a 60-second cooldown between messages
 - [ ] Enforce 100-character maximum message length
 
 ## 📋 Submission

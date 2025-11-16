@@ -4,6 +4,9 @@ pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
+# Claude AI assistant instructions
+CLAUDE.md
+
 # Environment variables
 .env
 .env.local
