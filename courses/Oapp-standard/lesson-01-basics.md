@@ -150,20 +150,19 @@ oapp.transferOwnership(multisigAddress);
 ### Origin Validation
 
 ```typescript
-function _lzReceive(
-    Origin calldata _origin,
-    bytes32 _guid,
-    bytes calldata _message,
-    address _executor,
-    bytes calldata _extraData
-) internal override {
-    // Validation happens automatically via OApp.sol
-    // Only registered peers can send messages
-    // _origin.srcEid and _origin.sender are verified
+ function _lzReceive(
+      Origin calldata _origin,
+      bytes32 _guid,
+      bytes calldata _message,
+      address _executor,
+      bytes calldata _extraData
+  ) internal override {
+      // Validation happens automatically via OApp.sol
+      // The base contract already ensures only registered peers can send messages
 
-    // Your business logic here
-    processMessage(_message);
-}
+      // Your business logic here
+      processMessage(_message);
+  }
 ```
 
 ### Reentrancy Protection

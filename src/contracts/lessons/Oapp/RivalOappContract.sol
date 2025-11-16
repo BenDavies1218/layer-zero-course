@@ -165,6 +165,10 @@ contract RivalsOappContract is OApp, OAppOptionsType3 {
         MessageType messageType = abi.decode(_payload, (MessageType));
 
         if (messageType == MessageType.WITHDRAWAL_REQUEST) {
+            // 🔒 SECURE: Validate withdrawal requests come from registered peers
+            // The base OApp already validates this, but we double-check for withdrawal requests
+            require(_origin.sender == _getPeerOrRevert(_origin.srcEid), "Invalid peer for withdrawal request");
+
             (
                 ,
                 bytes32 requestId,
@@ -193,6 +197,11 @@ contract RivalsOappContract is OApp, OAppOptionsType3 {
             emit WithdrawalApproved(user, amount, requestId);
 
         } else if (messageType == MessageType.WITHDRAWAL_APPROVAL) {
+            // 🚨 VULNERABILITY: No peer validation for approvals!
+            // The developer mistakenly thought the OApp base contract would handle this,
+            // but they need to explicitly validate for application-specific security logic.
+            // Any contract on the guardian chain can send fake approvals!
+
             (, bytes32 requestId, address user, uint256 amount) = abi.decode(
                 _payload,
                 (MessageType, bytes32, address, uint256)
@@ -201,6 +210,9 @@ contract RivalsOappContract is OApp, OAppOptionsType3 {
             WithdrawalRequest storage request = pendingWithdrawals[requestId];
             require(!request.approved, "Already approved");
             require(request.user != address(0), "Invalid request");
+
+            // 🚨 VULNERABILITY: Uses user and amount from payload instead of stored request!
+            // Attacker can specify ANY user and ANY amount in their fake approval!
             require(balances[user] >= amount, "Insufficient balance");
 
             request.approved = true;

