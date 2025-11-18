@@ -25,9 +25,9 @@ Every OApp needs three core components:
 2. **Send Logic**: Implement a function that calls `_lzSend()`
 3. **Receive Logic**: Override `_lzReceive()` to handle incoming messages send from the executor
 
-## Step 1. Create a SimpleMessager.sol contract
+## Step 1. Create a SimpleMessenger.sol contract
 
-Make sure its located in the "src/contracts" directory, (hardhat by default will compile all .sol files in the sub directorys)
+Make sure its located in the "contracts" directory (hardhat by default will compile all .sol files in the sub directorys)
 
 ```typescript
 // SPDX-License-Identifier: MIT
@@ -131,10 +131,10 @@ Override `_lzReceive()` to handle incoming messages:
 ```typescript
 function _lzReceive(
     Origin calldata _origin,
-    bytes32 _guid,
+    bytes32 _guid, // Message GUID (not used here in this example)
     bytes calldata _payload,
-    address _executor,
-    bytes calldata _extraData
+    address _executor, // Executor address (not used here in this example)
+    bytes calldata _extraData // Extra data (not used here in this example)
 ) internal override {
     // Decode the message
     string memory message = abi.decode(_payload, (string));
@@ -158,135 +158,154 @@ function _lzReceive(
 Before deployment, compile your contract to verify there are no errors:
 
 ```bash
-# Compile all contracts
-npx hardhat compile
+# Compile all contracts (uses both Forge and Hardhat)
+pnpm compile
+
+# Or compile with specific tools
+pnpm compile:hardhat  # Hardhat only
+pnpm compile:forge    # Foundry only
 
 # If you need to clean and recompile
-npx hardhat clean && npx hardhat compile
+pnpm clean && pnpm compile
 ```
 
 This will:
 
-- Compile all Solidity files in `src/contracts/`
+- Compile all Solidity files in `contracts/`
 - Generate TypeScript type definitions in `typechain-types/`
-- Create artifacts in `src/artifacts/`
-
-## Should you require the complete contract example
-
-There is the complete code here - [View Here](../../src/contracts/lessons/Oapp/ExampleSimpleMessenger.sol)
+- Create artifacts in `artifacts/` and `out/`
 
 ## Deployment Process
 
-Deploying an OApp involves three main steps:
+Deploying an OApp involves two main steps:
 
-1. **Deploy** the contract on each chain
-2. **Configure peers** (trusted remote contracts)
-3. **Set enforced options** (optional: gas limits, etc.)
+1. **Deploy** the contract on each chain using `lz:deploy`
+2. **Wire connections** using `lz:oapp:wire` to configure peers and options automatically
 
-### Step 1: Configure the Deploy Script
+### Step 1: Using a Deployment Script
 
-Open `src/scripts/deploy.ts` and update the contract name:
+Update the contract name in the deploy script located here
 
-```typescript
-async function main() {
-  // Enter the contract name to deploy
-  const contractName = "SimpleMessenger"; // Update this line
+View `deploy/OApp.ts` [View Here](../../deploy/OApp.ts)
 
-  const result = await deployOApp({
-    contractName,
-    constructorArgs: [], // Endpoint and owner are added automatically
-    verify: true, // Set to true to verify on block explorer
-  });
-}
-```
-
-**How it works:**
-
-- The script automatically injects the LayerZero endpoint address for the network
-- The deployer's address is automatically set as the contract owner
-- Optional: Enable contract verification on Etherscan
+This script will be used to deploy all Oapps
 
 ### Step 2: Deploy to Networks
 
-Deploy to two or more testnets. For example, Sepolia and Arbitrum Sepolia:
-
 ```bash
-# Deploy to Ethereum Sepolia
-npx hardhat run src/scripts/deploy.ts --network ethereum-sepolia
-
-# Deploy to Arbitrum Sepolia
-npx hardhat run src/scripts/deploy.ts --network arbitrum-sepolia
+# Deploy using the contract tag
+pnpm hardhat lz:deploy --tags OApp
 ```
 
-**Important:** Save the deployed addresses! You'll see output like:
+You'll be prompted to select which networks to deploy to. Choose at least two networks (e.g., Base Sepolia and Arbitrum Sepolia).
 
-```
-📋 Deployment Summary:
-   Contract: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
-   Network: ethereum-sepolia
-   Chain ID: 11155111
-   Block: 5234567
-   Tx: 0xabc123...
-```
+**The deployment will:**
 
-Copy these addresses - you'll need them for the next step.
+- Automatically inject the correct LayerZero Endpoint V2 address for each network
+- Set the deployer as the contract owner
+- Show deployment addresses and transaction hashes
+- Save deployment information in `deployments/` folder
 
-### Step 3: Configure Peers
+### Step 3: Create LayerZero Config
 
-After deploying to all desired networks, configure the peer relationships.
-
-Open `src/scripts/configure.ts` and update with your deployed addresses:
+Create or update `layerzero.config.ts` with your contract configuration:
 
 ```typescript
-async function main() {
-  // UPDATE THESE WITH YOUR DEPLOYED ADDRESSES
-  const deployments = {
-    "ethereum-sepolia": "0xYourSepoliaAddress",
-    "arbitrum-sepolia": "0xYourArbitrumAddress",
-    // Only include networks where you've deployed
-    "optimism-sepolia": "0x0000000000000000000000000000000000000000", // Leave as 0x0 if no contract was deployed to this network
-    "base-sepolia": "0x0000000000000000000000000000000000000000",
-    "polygon-amoy": "0x0000000000000000000000000000000000000000",
-  };
+import { EndpointId } from "@layerzerolabs/lz-definitions";
+import { ExecutorOptionType } from "@layerzerolabs/lz-v2-utilities";
+import {
+  TwoWayConfig,
+  generateConnectionsConfig,
+} from "@layerzerolabs/metadata-tools";
+import {
+  OAppEnforcedOption,
+  OmniPointHardhat,
+} from "@layerzerolabs/toolbox-hardhat";
 
-  // Enter the contract name to configure
-  const contractName = "SimpleMessenger"; // Update this line
+const baseContract: OmniPointHardhat = {
+  eid: EndpointId.BASESEP_V2_TESTNET,
+  contractName: "SimpleMessenger",
+};
+
+const arbitrumContract: OmniPointHardhat = {
+  eid: EndpointId.ARBSEP_V2_TESTNET,
+  contractName: "SimpleMessenger",
+};
+
+// Set enforced options for gas limits
+const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
+  {
+    msgType: 1,
+    optionType: ExecutorOptionType.LZ_RECEIVE,
+    gas: 200000, // Gas for _lzReceive execution
+    value: 0,
+  },
+];
+
+// Define pathways between chains
+const pathways: TwoWayConfig[] = [
+  [
+    baseContract,
+    arbitrumContract,
+    [["LayerZero Labs"], []], // DVN configuration
+    [1, 1], // Block confirmations
+    [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS],
+  ],
+];
+
+export default async function () {
+  const connections = await generateConnectionsConfig(pathways);
+  return {
+    contracts: [{ contract: baseContract }, { contract: arbitrumContract }],
+    connections,
+  };
 }
 ```
 
-**Run the configuration on each network:**
+### Step 4: Wire the Connections
+
+Run the wiring command to configure peers, DVNs, and enforced options automatically:
 
 ```bash
-# Configure on Sepolia
-npx hardhat run src/scripts/configure.ts --network ethereum-sepolia
-
-# Configure on Arbitrum Sepolia
-npx hardhat run src/scripts/configure.ts --network arbitrum-sepolia
+pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts
 ```
 
-**What this does:**
+**This single command will:**
 
-- Sets up trusted peer relationships between your contracts
-- Only includes networks with valid (non-zero) addresses
-- Skips peers that are already configured
-- Shows a summary of successful and failed configurations
+- Set peers on both chains (bidirectional)
+- Configure DVNs for message verification
+- Set enforced options (gas limits)
+- Configure send/receive libraries
+- Show you what changes will be made before executing
 
-**Important:** You must run the configure script on **each network** where you deployed. For bidirectional messaging between Sepolia and Arbitrum, you need to configure peers on both chains:
-
-- On Sepolia: Sets Arbitrum contract as a trusted peer
-- On Arbitrum: Sets Sepolia contract as a trusted peer
+**Important:** Review the proposed changes carefully before confirming. The wiring task only applies NEW changes, so it's safe to run multiple times.
 
 ## Sending Your First Cross-Chain Message
 
 Now that everything is deployed and configured, let's send a message!
 
-You have a many options for interacting with your contract this course shows you how to use the hardhat console, sometimes I prefer to use browser based GUI's to interact with the contract such as remix IDE or etherscan.
+### Option 1: Using LayerZero Send Task (Recommended)
 
-### Using Hardhat Console
+If you created a custom task for your SimpleMessenger, you can use it directly:
 
 ```bash
-# Connect to Sepolia
-npx hardhat console --network ethereum-sepolia
+# Send from Base Sepolia to Arbitrum Sepolia
+pnpm hardhat lz:oapp:send --dst-eid 40231 --string "Hello from Base!" --network base-sepolia
+```
+
+Replace `lz:oapp:send` with your custom task name if different. This will:
+
+- Automatically quote the gas cost
+- Send the message with proper fee
+- Return a LayerZero Scan link to track the message
+
+### Option 2: Using Hardhat Console
+
+For more control, use the Hardhat console:
+
+```bash
+# Connect to Base Sepolia
+npx hardhat console --network base-sepolia
 ```
 
 Then in the console:
@@ -294,11 +313,11 @@ Then in the console:
 ```javascript
 // Get contract instance
 const SimpleMessenger = await ethers.getContractFactory("SimpleMessenger");
-const messenger = SimpleMessenger.attach("0xYourSepoliaAddress");
+const messenger = SimpleMessenger.attach("0xYourBaseSepoliaAddress");
 
 // Get quote for sending to Arbitrum Sepolia
 const arbSepoliaEid = 40231; // Arbitrum Sepolia endpoint ID
-const message = "Hello from Sepolia!";
+const message = "Hello from Base Sepolia!";
 const options = "0x"; // Use default options
 
 const fee = await messenger.quote(arbSepoliaEid, message, options, false);
@@ -314,6 +333,16 @@ console.log(`Transaction hash: ${tx.hash}`);
 await tx.wait();
 console.log("✅ Message sent!");
 ```
+
+### Option 3: Using Block Explorers
+
+You can also interact directly through block explorers like Etherscan:
+
+1. Go to your contract address on Base Sepolia Etherscan
+2. Navigate to "Write Contract"
+3. Connect your wallet
+4. Call `quote()` first to get the fee
+5. Call `sendMessage()` with the message and fee value
 
 ### Tracking Your Message
 
@@ -338,7 +367,8 @@ npx hardhat console --network arbitrum-sepolia
 ```
 
 ```javascript
-const messenger = SimpleMessenger.attach("0xYourArbSepoliaAddress");
+const SimpleMessenger = await ethers.getContractFactory("SimpleMessenger");
+const messenger = SimpleMessenger.attach("0xYourArbitrumSepoliaAddress");
 
 // Check last received message
 const lastMessage = await messenger.lastMessage();
@@ -370,41 +400,42 @@ await messenger.sendMessage(dstEid, message, options, { value: fee.nativeFee });
 
 **Problem**: Message fails with "no peer" error.
 
-**Solution**: Ensure you've called `setPeer()` on both source and destination:
+**Solution**: Ensure you've run `lz:oapp:wire` to configure peers:
+
+```bash
+pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts
+```
+
+Or manually set peers if needed:
 
 ```javascript
-// On source chain
 await messenger.setPeer(dstEid, ethers.utils.zeroPad(dstAddress, 32));
-
-// On destination chain
-await messenger.setPeer(srcEid, ethers.utils.zeroPad(srcAddress, 32));
 ```
 
 ### Issue 3: Message stuck in "Verification"
 
 **Problem**: Message verified but not executed.
 
-**Solution**: Check gas limits. Increase gas in options:
+**Solution**: Check enforced options in your `layerzero.config.ts`. Increase gas limits:
 
-```javascript
-const options = Options.newOptions().addExecutorLzReceiveOption(300000, 0);
+```typescript
+const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
+  {
+    msgType: 1,
+    optionType: ExecutorOptionType.LZ_RECEIVE,
+    gas: 300000, // Increased from 200000
+    value: 0,
+  },
+];
 ```
+
+Then re-run `pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts`.
 
 ### Issue 4: "Out of gas" on destination
 
 **Problem**: Execution fails due to insufficient gas.
 
-**Solution**: Set enforced options with sufficient gas:
-
-```javascript
-await messenger.setEnforcedOptions([
-  {
-    eid: dstEid,
-    msgType: 1,
-    options: Options.newOptions().addExecutorLzReceiveOption(200000, 0).toHex(),
-  },
-]);
-```
+**Solution**: Update enforced options in `layerzero.config.ts` with sufficient gas for your `_lzReceive()` function, then re-wire.
 
 ## Next Steps
 
@@ -440,8 +471,8 @@ In **Lesson 03**, we'll explore advanced patterns like:
 
 ## Resources
 
-- [SimpleMessenger.sol](../../src/contracts/omnichain-messaging/SimpleMessenger.sol) - Complete contract code
-- [Deploy Script](./utils/deploy-simple-messenger.ts) - Deployment automation
-- [Configure Script](./utils/configure-peers.ts) - Peer configuration
+- [LayerZero V2 Documentation](https://docs.layerzero.network/v2) - Official documentation
 - [LayerZero Scan](https://layerzeroscan.com) - Track your messages
 - [Endpoint Addresses](https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts) - All networks
+- [Deploying Contracts](https://docs.layerzero.network/v2/developers/evm/create-lz-oapp/deploying) - Deployment guide
+- [Wiring OApps](https://docs.layerzero.network/v2/developers/evm/create-lz-oapp/wiring) - Configuration guide

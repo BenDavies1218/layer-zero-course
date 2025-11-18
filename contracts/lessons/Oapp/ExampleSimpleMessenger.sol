@@ -26,7 +26,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * - Only owner can configure peers and enforced options
  * - Refund address specified to return excess fees
  */
-contract SimpleMessenger is OApp, OAppOptionsType3 {
+contract ExampleSimpleMessenger is OApp, OAppOptionsType3 {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/

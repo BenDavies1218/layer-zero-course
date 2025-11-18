@@ -10,7 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @notice Example implementation for cross-VM messaging from Lesson 05
  * @dev Demonstrates sending messages from EVM chains to Solana via LayerZero
  */
-contract SolanaMessenger is OApp, OAppOptionsType3 {
+contract ExampleSolanaMessenger is OApp, OAppOptionsType3 {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/

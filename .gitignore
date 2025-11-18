@@ -1,53 +1,23 @@
-# Dependencies
-node_modules/
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
-
-# Claude AI assistant instructions
-CLAUDE.md
-
-# Environment variables
+node_modules
 .env
-.env.local
-.env.*.local
+coverage
+coverage.json
+typechain
+typechain-types
 
 # Hardhat files
-cache/
-artifacts/
-typechain-types/
+cache
+artifacts
 
-# Deployment outputs
-deployments/
-deployments.json
-broadcast/
+# LayerZero specific files
+.layerzero
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# foundry test compilation files
+out
 
-# OS
+# pnpm
+pnpm-error.log
+
+# Editor and OS files
 .DS_Store
-Thumbs.db
-
-# Build outputs
-dist/
-build/
-out/
-
-# Logs
-*.log
-logs/
-
-# Coverage
-coverage/
-coverage.json
-.coverage_artifacts
-.coverage_cache
-.coverage_contracts
-
-# Typescript
-*.tsbuildinfo
+.idea

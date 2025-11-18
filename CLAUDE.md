@@ -4,194 +4,211 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a LayerZero V2 educational course repository for learning cross-chain (omnichain) messaging using the OApp standard. The project contains Solidity smart contracts that enable cross-chain communication between EVM chains, along with deployment scripts, configuration utilities, and comprehensive course materials.
+This is a LayerZero V2 OApp (Omnichain Application) development repository that serves both as a working example and an educational course. It demonstrates cross-chain messaging using LayerZero protocol and includes comprehensive lessons and challenges for learning omnichain development.
 
-## Common Commands
+## Essential Commands
 
-### Build & Test
+### Build & Compile
 ```bash
-# Compile contracts
-npx hardhat compile
-
-# Run all tests
-npx hardhat test
-
-# Run specific test file
-npx hardhat test src/tests/SimpleMessenger.test.ts
-
-# Clean build artifacts
-npx hardhat clean
+pnpm compile              # Compile using both Forge and Hardhat
+pnpm compile:forge        # Compile using Foundry only
+pnpm compile:hardhat      # Compile using Hardhat only
+pnpm clean                # Clean artifacts, cache, and build outputs
 ```
 
-### Deployment
+### Testing
 ```bash
-# Deploy to specific testnet (replace network name as needed)
-npx hardhat run src/scripts/deploy.ts --network ethereum-sepolia
-npx hardhat run src/scripts/deploy.ts --network arbitrum-sepolia
-
-# Configure peers after deployment
-npx hardhat run src/scripts/configure.ts --network ethereum-sepolia
-npx hardhat run src/scripts/configure.ts --network arbitrum-sepolia
+pnpm test                 # Run all tests (Forge + Hardhat)
+pnpm test:forge           # Run Foundry tests only
+pnpm test:hardhat         # Run Hardhat tests only
 ```
 
-### Interactive Console
+### Linting
 ```bash
-# Open Hardhat console for specific network
-npx hardhat console --network ethereum-sepolia
-
-# Example console commands:
-# const messenger = await ethers.getContractAt("SimpleMessenger", "0xYourAddress");
-# const fee = await messenger.quote(40231, "Hello!", "0x", false);
-# await messenger.sendMessage(40231, "Hello!", "0x", {value: fee.nativeFee});
+pnpm lint                 # Lint JavaScript/TypeScript and Solidity
+pnpm lint:js              # Lint JS/TS files only
+pnpm lint:sol             # Lint Solidity files only
+pnpm lint:fix             # Auto-fix linting issues
 ```
+
+### Deployment & Configuration
+
+**Deploy OApp contracts:**
+```bash
+pnpm hardhat lz:deploy --tags MyOApp
+```
+Select chains interactively. Deploys to networks defined in `hardhat.config.ts` with their corresponding Endpoint IDs (EIDs).
+
+**Wire OApp connections (enable cross-chain messaging):**
+```bash
+pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts
+```
+Configures peers, enforced options, DVNs, and message libraries. Run this after deployment and whenever you update `layerzero.config.ts`.
+
+**Check current configuration:**
+```bash
+pnpm hardhat lz:oapp:config:get --oapp-config layerzero.config.ts
+```
+Shows custom, default, and active configurations for each pathway.
+
+**Initialize new config file:**
+```bash
+pnpm hardhat lz:oapp:config:init --contract-name CONTRACT_NAME --oapp-config FILE_NAME
+```
+
+### Sending Cross-Chain Messages
+
+```bash
+pnpm hardhat lz:oapp:send --dst-eid 40231 --string 'Hello from Base!' --network base-sepolia
+```
+- `--dst-eid`: Destination Endpoint ID (e.g., 40231 for Arbitrum Sepolia, 40245 for Base Sepolia)
+- `--string`: Message to send
+- `--network`: Source network (from hardhat.config.ts)
+- Returns LayerZero Scan link for tracking message delivery
 
 ## Architecture
 
-### Core LayerZero Concepts
+### Core Contracts
 
-**OApp Pattern**: All cross-chain contracts in this repo inherit from LayerZero's `OApp` base contract which provides:
-- `_lzSend()` - Send messages to other chains via LayerZero Endpoint V2
-- `_lzReceive()` - Receive messages from other chains (must be overridden)
-- Peer validation - Only registered peer contracts on other chains can send messages
-- Ownership controls via OpenZeppelin's `Ownable`
+**MyOApp.sol** (`contracts/MyOApp.sol`)
+- Main OApp implementation inheriting from `OApp` and `OAppOptionsType3`
+- Implements `sendString()` for sending cross-chain messages
+- Overrides `_lzReceive()` to handle incoming messages
+- Stores last received message in `lastMessage` state variable
+- Uses message type `SEND = 1` for enforced options
 
-**Message Flow**:
-1. User calls send function on source chain OApp
-2. OApp encodes message and calls `_lzSend()` on local Endpoint V2
-3. DVNs (Decentralized Verifier Networks) verify the message off-chain
-4. Executor delivers verified message to destination chain Endpoint V2
-5. Destination Endpoint calls `lzReceive()` on destination OApp
-6. Destination OApp's `_lzReceive()` processes the message
+### Key Architectural Concepts
 
-**Endpoint IDs (EIDs)**: Each chain has a unique identifier:
-- Ethereum Sepolia: 40161
-- Arbitrum Sepolia: 40231
-- Optimism Sepolia: 40232
-- Base Sepolia: 40245
-- Polygon Amoy: 40267
+**OApp Pattern:**
+- Contracts inherit from `OApp` base contract from `@layerzerolabs/oapp-evm`
+- `_lzSend()` sends messages to destination chains via local Endpoint V2
+- `_lzReceive()` receives and processes messages from peer OApps
+- Peer validation is automatic - only registered peers can communicate
+- Each OApp has one owner who controls configuration
 
-### Project Structure
+**LayerZero Components:**
+- **Endpoint V2**: Chain-specific LayerZero contract handling all cross-chain operations
+- **DVNs (Decentralized Verifier Networks)**: Off-chain services that verify cross-chain messages
+- **Executors**: Deliver verified messages to destination chain and pay gas for execution
+- **Peers**: Trusted counterpart OApp addresses on other chains (registered via `setPeer()`)
 
-```
-src/
-├── contracts/          # Solidity smart contracts
-│   ├── Oapp/          # Student implementation contracts (incomplete templates)
-│   └── examples/Oapp/ # Complete reference implementations
-├── scripts/           # Deployment and configuration scripts
-│   ├── deploy.ts     # Generic OApp deployment script
-│   └── configure.ts  # Peer configuration script
-├── tests/            # Hardhat test files
-├── utils/            # Utility scripts for complex deployments
-└── diagrams/         # Visual documentation (SVG flow diagrams)
+**Message Flow:**
+1. User calls `sendString()` with destination EID and message
+2. OApp calls `_lzSend()` to local Endpoint V2
+3. DVNs verify the message cross-chain
+4. Executor delivers message to destination Endpoint V2
+5. Destination Endpoint calls `lzReceive()` on peer OApp
+6. OApp's `_lzReceive()` processes the message
 
-courses/              # Course lesson materials (Markdown)
-├── Oapp-standard/
-│   ├── lesson-01-basics.md
-│   ├── lesson-02-simple-oapp.md
-│   └── challenges/
-```
+### Configuration Files
 
-**Key distinction**:
-- `src/contracts/Oapp/` contains starter templates for students to complete
-- `src/contracts/examples/Oapp/` contains fully implemented reference contracts
-- Example: `SimpleMessenger.sol` in Oapp/ is a template, ExampleSimpleMessenger.sol in examples/Oapp/ is complete
+**layerzero.config.ts**
+- Defines OApp contracts per chain with their Endpoint IDs
+- Configures pathways between chains (automatically bidirectional)
+- Sets enforced options (gas limits for `lzReceive` execution)
+- Specifies DVN requirements and confirmations per pathway
+- Used by wiring task to configure OApp connections
 
-### Contract Requirements
+**hardhat.config.ts**
+- Network configurations with RPC URLs and accounts
+- Each network must have an `eid` property set to its LayerZero Endpoint ID
+- Default networks: `arbitrum-sepolia` (EID 40231) and `base-sepolia` (EID 40245)
+- Uses environment variables for MNEMONIC/PRIVATE_KEY and ALCHEMY_API_KEY
 
-Every OApp implementation must:
-1. Inherit from `OApp` and `OAppOptionsType3`
-2. Pass `_endpoint` and `_owner` addresses to parent constructors
-3. Implement `_lzReceive()` to handle incoming cross-chain messages
-4. Define message types as constants (e.g., `uint16 public constant SEND = 1`)
-5. Use `combineOptions()` to merge enforced options with caller options
-6. Emit events for message sending and receiving
+**foundry.toml**
+- Foundry-specific configuration with Solidity 0.8.22
+- Custom remappings for LayerZero and OpenZeppelin packages
+- Source in `contracts/`, tests in `test/foundry/`, output in `out/`
 
-### Deployment & Configuration Pattern
+### Testing Architecture
 
-OApps require a two-step setup:
-1. **Deploy**: Deploy identical contracts to multiple chains
-2. **Configure Peers**: Call `setPeer(dstEid, peerAddress)` on each chain to establish trust relationships
+**Foundry Tests** (`test/foundry/MyOApp.t.sol`)
+- Uses `TestHelperOz5` from `@layerzerolabs/test-devtools-evm-foundry`
+- Sets up mock endpoints for multiple chains (aEid, bEid)
+- `wireOApps()` helper automatically configures peer relationships
+- `verifyPackets()` simulates cross-chain message delivery
+- Tests use `OptionsBuilder` to construct execution options
 
-Peers must be set bidirectionally. For example, to enable Sepolia ↔ Arbitrum communication:
-- On Sepolia: `setPeer(40231, addressOnArbitrum)`
-- On Arbitrum: `setPeer(40161, addressOnSepolia)`
+**Hardhat Tests** (`test/hardhat/MyOApp.test.ts`)
+- Standard Hardhat + Ethers.js testing setup
 
-### Fee Quoting & Payment
+### Deployment System
 
-Always call `quote()` before sending messages to calculate required fees:
-```solidity
-function quote(
-    uint32 _dstEid,
-    string calldata _message,
-    bytes calldata _options,
-    bool _payInLzToken
-) external view returns (MessagingFee memory fee);
-```
+**Deploy Scripts** (`deploy/MyOApp.ts`)
+- Uses `hardhat-deploy` plugin with named accounts
+- Automatically retrieves LayerZero EndpointV2 address for the network
+- Deploys with deployer as initial owner
+- Tag system allows selective deployment (e.g., `--tags MyOApp`)
 
-The returned `MessagingFee.nativeFee` covers:
-- DVN verification costs
-- Executor gas costs on destination chain
-- LayerZero protocol fees
+**Custom Tasks** (`tasks/sendString.ts`)
+- Implements `lz:oapp:send` task for sending messages
+- Quotes gas costs before sending
+- Provides structured error handling and logging
+- Returns LayerZero Scan links and block explorer links
 
-Pass this fee as `msg.value` when calling send functions.
-
-## Environment Setup
+### Environment Setup
 
 Required environment variables (see `.env.example`):
-- `PRIVATE_KEY` - Deployment wallet private key (must start with 0x and be 66 chars)
-- `ALCHEMY_API_KEY` - Alchemy API key for RPC endpoints
-- `ETHERSCAN_API_KEY` - Optional, for contract verification
+- `MNEMONIC` or `PRIVATE_KEY` - Deployer account credentials
+- `ALCHEMY_API_KEY` - Shared Alchemy API key for RPC access
+- RPC URLs are constructed as `RPC_URL_BASE + ALCHEMY_API_KEY`
 
-RPC endpoints are configured in `hardhat.config.ts` to use Alchemy with fallback public RPCs.
+## Important Development Notes
 
-## Development Notes
+### Working with OApps
 
-**Hardhat Configuration**:
-- Solidity version: 0.8.22
-- Custom paths: sources in `./src/contracts`, tests in `./src/tests`
-- Networks configured with EID properties for LayerZero compatibility
+1. **Peer Configuration**: OApps must have peers configured on both chains before messaging works. The `lz:oapp:wire` task handles this automatically based on `layerzero.config.ts`.
 
-**TypeScript**: Project uses TypeScript for scripts and tests. TypeChain automatically generates type definitions in `typechain-types/` during compilation.
+2. **Enforced Options**: Set minimum gas limits for destination execution in `layerzero.config.ts`. The value of 80,000 gas for `LZ_RECEIVE` is a starting point - profile your `_lzReceive()` function to determine actual requirements.
 
-**Message Tracking**: Use [LayerZero Scan](https://layerzeroscan.com) to track cross-chain messages. Expected timeline:
-- Verification: 1-5 minutes
-- Execution: 1-2 minutes after verification
+3. **Fee Estimation**: Always call `quoteSendString()` before sending to get the required native fee. Fees cover DVN verification and Executor delivery costs.
 
-**Gas Considerations**:
-- Use `OptionsBuilder` to set custom gas limits for destination execution
-- Set enforced options as contract owner to ensure minimum gas for complex operations
-- Default options (`0x`) work for simple messages but may fail for storage-heavy operations
+4. **Message Encoding**: Use `abi.encode()` and `abi.decode()` for structured data. For complex types, consider using custom encoding patterns.
 
-## Testing Strategy
+5. **Endpoint IDs (EIDs)**: Each chain has a unique EID (e.g., 40231 for Arbitrum Sepolia). These are defined in `@layerzerolabs/lz-definitions` and must match in `hardhat.config.ts`.
 
-The repo uses Hardhat for testing but note:
-- Basic unit tests verify contract deployment and state
-- Full cross-chain testing requires LayerZero's mock endpoint utilities
-- Testnet deployment and manual testing via console is the primary validation method
-- Always test on testnets before mainnet deployment
+### Security Considerations
 
-## Common Patterns
+- **Origin Validation**: The base `OApp` contract automatically validates that messages come from registered peers. No additional validation needed in `_lzReceive()`.
+- **Reentrancy**: Follow checks-effects-interactions pattern in `_lzReceive()` - update state before external calls.
+- **Gas Limits**: Insufficient gas in enforced options will cause message delivery failure on destination chain.
+- **Ownership**: Contract owner controls peer configuration, enforced options, and DVN settings. Use multisig for production.
 
-**Encoding/Decoding Messages**:
-```solidity
-// Encode
-bytes memory payload = abi.encode(_message);
+### Common Patterns
 
-// Decode
-string memory message = abi.decode(_payload, (string));
-```
+**ABA Pattern (Ping-Pong)**: Message from Chain A to Chain B triggers another message back to Chain A. Used for request-response workflows.
 
-**Refund Pattern**:
-Always specify `payable(msg.sender)` as the refund address in `_lzSend()` to return excess fees.
+**Batch Send Pattern**: Send multiple messages to different chains in a single transaction. Useful for broadcasting state updates.
 
-**Peer Address Conversion**:
-Peer addresses must be bytes32. Use `bytes32(uint256(uint160(address)))` or ethers utilities to convert.
+### TypeScript Configuration
 
-## Resources & Documentation
+- Target: ES2020, CommonJS modules
+- Includes: `deploy/`, `test/`, `tasks/`, `hardhat.config.ts`
+- Types available: Node.js and Mocha
 
-- LayerZero V2 Docs: https://docs.layerzero.network/v2
-- OApp Standard: https://docs.layerzero.network/v2/developers/evm/oapp/overview
-- Endpoint Addresses: https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts
-- Message Tracking: https://layerzeroscan.com
+## Course Structure
 
-Course materials in `courses/Oapp-standard/` provide step-by-step tutorials with detailed explanations of the protocol architecture, security considerations, and implementation patterns.
+The repository includes educational content in `courses/Oapp-standard/`:
+- **lesson-01-basics.md**: LayerZero architecture and core concepts
+- **lesson-02-simple-oapp.md**: Building and deploying your first OApp
+- **lesson-03-aba-messaging.md**: Ping-pong messaging pattern
+- **lesson-04-multichain-messaging.md**: Broadcasting to multiple chains
+- **lesson-05-solana-interaction.md**: Cross-chain with Solana
+- **lesson-06-challenges.md**: Overview of challenge exercises
+- **challenges/**: Practical coding challenges (Chain Whisperer, Quantum Thief, Cosmic Voting, Bridge Breaker, Nexus Prime)
+
+When modifying code for lessons or challenges, ensure changes align with the educational objectives and maintain working examples.
+
+## Package Management
+
+This project uses `pnpm` as the primary package manager. The repository includes `pnpm-lock.yaml` and `pnpm` overrides in `package.json`. While npm/yarn should work, pnpm is recommended for consistency.
+
+## Troubleshooting
+
+- **"No send library"**: Network config missing `eid` property in `hardhat.config.ts`
+- **"Only peer" error**: Peers not configured - run `lz:oapp:wire`
+- **Message not delivered**: Check LayerZero Scan link for status, verify gas limits in enforced options
+- **Deployment fails**: Ensure deployer account has native tokens on target chain
+- **Contract size limit**: Hardhat config already sets `allowUnlimitedContractSize: true` for local testing
+
+Refer to [LayerZero Troubleshooting Docs](https://docs.layerzero.network/v2/developers/evm/troubleshooting/debugging-messages) for detailed debugging.

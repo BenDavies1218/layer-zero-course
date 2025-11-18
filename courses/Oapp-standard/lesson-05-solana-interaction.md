@@ -93,7 +93,7 @@ Let's create a contract that sends messages to Solana.
 
 ### Step 1: Create SolanaMessenger.sol
 
-Create `src/contracts/Oapp/SolanaMessenger.sol`:
+Create `contracts/SolanaMessenger.sol`:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -248,14 +248,49 @@ contract SolanaMessenger is OApp, OAppOptionsType3 {
 
 ```bash
 # Compile
-npx hardhat compile
-
-# Update deploy script
-# src/scripts/deploy.ts: const contractName = "SolanaMessenger";
-
-# Deploy to an EVM testnet (e.g., Sepolia)
-npx hardhat run src/scripts/deploy.ts --network ethereum-sepolia
+pnpm compile
 ```
+
+Create `deploy/SolanaMessenger.ts`:
+
+```typescript
+import assert from 'assert'
+import { type DeployFunction } from 'hardhat-deploy/types'
+
+const contractName = 'SolanaMessenger'
+
+const deploy: DeployFunction = async (hre) => {
+    const { getNamedAccounts, deployments } = hre
+    const { deploy } = deployments
+    const { deployer } = await getNamedAccounts()
+
+    assert(deployer, 'Missing named deployer account')
+
+    const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+
+    const { address } = await deploy(contractName, {
+        from: deployer,
+        args: [endpointV2Deployment.address, deployer],
+        log: true,
+        skipIfAlreadyDeployed: false,
+    })
+
+    console.log(`Deployed: ${contractName} at ${address}`)
+}
+
+deploy.tags = [contractName]
+
+export default deploy
+```
+
+Deploy to an EVM testnet:
+
+```bash
+# Deploy using LayerZero deployment
+pnpm hardhat lz:deploy --tags SolanaMessenger
+```
+
+Select Base Sepolia or another EVM testnet.
 
 ### Step 2: Get Solana OApp Address
 
@@ -274,12 +309,12 @@ Bytes32: 0xb91f6a3c6b0f8a5c7d2e9f1a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 ### Step 3: Configure Solana Peer
 
 ```bash
-npx hardhat console --network ethereum-sepolia
+npx hardhat console --network base-sepolia
 ```
 
 ```javascript
 const SolanaMessenger = await ethers.getContractFactory("SolanaMessenger");
-const messenger = SolanaMessenger.attach("0xYourSepoliaAddress");
+const messenger = SolanaMessenger.attach("0xYourBaseSepoliaAddress");
 
 // Solana Devnet endpoint ID
 const solanaDevnetEid = 40168;
@@ -324,7 +359,7 @@ console.log(`Total messages sent to Solana: ${sent}`);
 Visit [LayerZero Scan](https://layerzeroscan.com) and enter your transaction hash.
 
 You'll see:
-- **Source**: Ethereum Sepolia (EVM)
+- **Source**: Base Sepolia (EVM)
 - **Destination**: Solana Devnet
 - **Status**: Verification → Execution
 
@@ -369,6 +404,8 @@ Solana has faster finality:
 - **Solana finality**: ~30 seconds
 - **EVM → Solana**: Wait for EVM finality (1-5 minutes)
 - **Solana → EVM**: Faster verification on Solana side
+
+**Note:** For cross-VM messaging with Solana, you can also configure the connection in `layerzero.config.ts` if you have both EVM and Solana contracts deployed. However, due to the different tooling requirements, manual peer configuration (as shown above) is often easier for initial setup.
 
 ## Receiving Messages from Solana
 
@@ -462,8 +499,8 @@ await messenger.sendToSolana(40168, "Test", "0x", { value: fee.nativeFee });
 **Problem**: Solana OApp doesn't have EVM contract set as peer.
 
 **Solution**: Configure peers on both sides:
-- EVM: `setPeer(solanaEid, solanaPubkey)`
-- Solana: Configure equivalent peer setting
+- EVM: `setPeer(solanaEid, solanaPubkey)` (via console or `lz:oapp:wire` if configured)
+- Solana: Configure equivalent peer setting using Solana tooling
 
 ### Issue 2: Address conversion errors
 

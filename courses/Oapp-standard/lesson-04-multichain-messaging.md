@@ -53,7 +53,7 @@ Before starting:
 
 ## Step 1: Create MultichainBroadcaster.sol
 
-Create `src/contracts/Oapp/MultichainBroadcaster.sol`:
+Create `contracts/MultichainBroadcaster.sol`:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -420,79 +420,129 @@ Organize messages by type for easy retrieval.
 ### Step 1: Compile
 
 ```bash
-npx hardhat compile
+pnpm compile
 ```
 
-### Step 2: Deploy to Multiple Chains
+### Step 2: Create Deploy Script
 
-Update `src/scripts/deploy.ts`:
+Create `deploy/MultichainBroadcaster.ts`:
 
 ```typescript
-const contractName = "MultichainBroadcaster";
+import assert from 'assert'
+import { type DeployFunction } from 'hardhat-deploy/types'
+
+const contractName = 'MultichainBroadcaster'
+
+const deploy: DeployFunction = async (hre) => {
+    const { getNamedAccounts, deployments } = hre
+    const { deploy } = deployments
+    const { deployer } = await getNamedAccounts()
+
+    assert(deployer, 'Missing named deployer account')
+
+    const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+
+    const { address } = await deploy(contractName, {
+        from: deployer,
+        args: [endpointV2Deployment.address, deployer],
+        log: true,
+        skipIfAlreadyDeployed: false,
+    })
+
+    console.log(`Deployed: ${contractName} to ${hre.network.name} at ${address}`)
+}
+
+deploy.tags = [contractName]
+
+export default deploy
 ```
 
-Deploy to at least 3 chains:
+### Step 3: Deploy to Multiple Chains
 
 ```bash
-# Deploy to Sepolia
-npx hardhat run src/scripts/deploy.ts --network ethereum-sepolia
-
-# Deploy to Arbitrum Sepolia
-npx hardhat run src/scripts/deploy.ts --network arbitrum-sepolia
-
-# Deploy to Optimism Sepolia
-npx hardhat run src/scripts/deploy.ts --network optimism-sepolia
-
-# Deploy to Base Sepolia
-npx hardhat run src/scripts/deploy.ts --network base-sepolia
+pnpm hardhat lz:deploy --tags MultichainBroadcaster
 ```
 
-### Step 3: Configure Peers
+Select at least 3 chains (e.g., Base Sepolia, Arbitrum Sepolia, Optimism Sepolia).
 
-Update `src/scripts/configure.ts`:
+### Step 4: Configure LayerZero Config
+
+Update `layerzero.config.ts` to create a mesh network:
 
 ```typescript
-const deployments = {
-  "ethereum-sepolia": "0xYourSepoliaAddress",
-  "arbitrum-sepolia": "0xYourArbitrumAddress",
-  "optimism-sepolia": "0xYourOptimismAddress",
-  "base-sepolia": "0xYourBaseAddress",
-};
+const baseContract: OmniPointHardhat = {
+    eid: EndpointId.BASESEP_V2_TESTNET,
+    contractName: 'MultichainBroadcaster',
+}
 
-const contractName = "MultichainBroadcaster";
+const arbitrumContract: OmniPointHardhat = {
+    eid: EndpointId.ARBSEP_V2_TESTNET,
+    contractName: 'MultichainBroadcaster',
+}
+
+const optimismContract: OmniPointHardhat = {
+    eid: EndpointId.OPTSEP_V2_TESTNET,
+    contractName: 'MultichainBroadcaster',
+}
+
+const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
+    {
+        msgType: 1,
+        optionType: ExecutorOptionType.LZ_RECEIVE,
+        gas: 200000,
+        value: 0,
+    },
+]
+
+// Create pathways between all chains
+const pathways: TwoWayConfig[] = [
+    [baseContract, arbitrumContract, [['LayerZero Labs'], []], [1, 1], [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS]],
+    [baseContract, optimismContract, [['LayerZero Labs'], []], [1, 1], [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS]],
+    [arbitrumContract, optimismContract, [['LayerZero Labs'], []], [1, 1], [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS]],
+]
+
+export default async function () {
+    const connections = await generateConnectionsConfig(pathways)
+    return {
+        contracts: [
+            { contract: baseContract },
+            { contract: arbitrumContract },
+            { contract: optimismContract },
+        ],
+        connections,
+    }
+}
 ```
 
-Run on all chains:
+### Step 5: Wire All Connections
 
 ```bash
-npx hardhat run src/scripts/configure.ts --network ethereum-sepolia
-npx hardhat run src/scripts/configure.ts --network arbitrum-sepolia
-npx hardhat run src/scripts/configure.ts --network optimism-sepolia
-npx hardhat run src/scripts/configure.ts --network base-sepolia
+pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts
 ```
+
+This creates a fully connected mesh network where any chain can send to any other chain.
 
 ## Testing Multichain Broadcasting
 
 ### Step 1: Quote Broadcast Fee
 
 ```bash
-npx hardhat console --network ethereum-sepolia
+npx hardhat console --network base-sepolia
 ```
 
 ```javascript
 const MultichainBroadcaster = await ethers.getContractFactory(
   "MultichainBroadcaster"
 );
-const broadcaster = MultichainBroadcaster.attach("0xYourSepoliaAddress");
+const broadcaster = MultichainBroadcaster.attach("0xYourBaseSepoliaAddress");
 
 // Define destination chains
 const arbSepoliaEid = 40231;
 const opSepoliaEid = 40232;
-const baseSepoliaEid = 40245;
 
-const dstEids = [arbSepoliaEid, opSepoliaEid, baseSepoliaEid];
+const dstEids = [arbSepoliaEid, opSepoliaEid];
 const category = 0; // GENERAL
-const message = "Hello from Sepolia to all chains!";
+const message = "Hello from Base to all chains!";
 const options = "0x";
 
 // Quote total fee
@@ -524,10 +574,9 @@ console.log("✅ Broadcast sent to all chains!");
 
 Visit [LayerZero Scan](https://layerzeroscan.com) and search for your transaction.
 
-You'll see **three separate messages**:
-- Sepolia → Arbitrum
-- Sepolia → Optimism
-- Sepolia → Base
+You'll see **two separate messages**:
+- Base Sepolia → Arbitrum Sepolia
+- Base Sepolia → Optimism Sepolia
 
 Each message is independent and may arrive at different times.
 

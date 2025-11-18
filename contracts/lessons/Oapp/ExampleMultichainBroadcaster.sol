@@ -10,7 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @notice Example implementation of multichain broadcasting from Lesson 04
  * @dev Demonstrates batch sending to multiple chains in a single transaction
  */
-contract MultichainBroadcaster is OApp, OAppOptionsType3 {
+contract ExampleMultichainBroadcaster is OApp, OAppOptionsType3 {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/

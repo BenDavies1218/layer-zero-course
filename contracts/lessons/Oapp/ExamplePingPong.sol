@@ -13,7 +13,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * Key Design: Sender pays for entire round trip upfront - no contract funding needed.
  * Pong options are encoded in ping payload, and gas is pre-allocated via lzReceiveOption.
  */
-contract PingPong is OApp, OAppOptionsType3 {
+contract ExamplePingPong is OApp, OAppOptionsType3 {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/

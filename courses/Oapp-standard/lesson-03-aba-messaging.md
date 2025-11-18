@@ -85,7 +85,7 @@ For A → B → A messaging, the sender pays for the complete round trip in a si
 
 ### Step 1: Create Contract File and Imports
 
-Create `src/contracts/Oapp/PingPong.sol`
+Create `contracts/PingPong.sol`
 
 ```javascript
 // SPDX-License-Identifier: MIT
@@ -333,47 +333,98 @@ if (messageType == MessageType.PING) {
 ### Step 1: Compile
 
 ```bash
-npx hardhat compile
+pnpm compile
 ```
 
-### Step 2: Update Deploy Script
+### Step 2: Create Deploy Script
 
-Edit `src/scripts/deploy.ts`:
+Create `deploy/PingPong.ts`:
 
 ```typescript
-const contractName = "PingPong";
+import assert from 'assert'
+import { type DeployFunction } from 'hardhat-deploy/types'
+
+const contractName = 'PingPong'
+
+const deploy: DeployFunction = async (hre) => {
+    const { getNamedAccounts, deployments } = hre
+    const { deploy } = deployments
+    const { deployer } = await getNamedAccounts()
+
+    assert(deployer, 'Missing named deployer account')
+
+    console.log(`Network: ${hre.network.name}`)
+    console.log(`Deployer: ${deployer}`)
+
+    const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+
+    const { address } = await deploy(contractName, {
+        from: deployer,
+        args: [
+            endpointV2Deployment.address,
+            deployer,
+        ],
+        log: true,
+        skipIfAlreadyDeployed: false,
+    })
+
+    console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
+}
+
+deploy.tags = [contractName]
+
+export default deploy
 ```
 
 ### Step 3: Deploy to Two Chains
 
 ```bash
-# Deploy to Sepolia
-npx hardhat run src/scripts/deploy.ts --network ethereum-sepolia
-
-# Deploy to Arbitrum Sepolia
-npx hardhat run src/scripts/deploy.ts --network arbitrum-sepolia
+# Deploy using LayerZero deployment
+pnpm hardhat lz:deploy --tags PingPong
 ```
 
-Save both addresses!
+Select at least two networks (e.g., Base Sepolia and Arbitrum Sepolia).
 
-### Step 4: Configure Peers
+### Step 4: Update LayerZero Config
 
-Edit `src/scripts/configure.ts`:
+Update `layerzero.config.ts` to include PingPong contracts:
 
 ```typescript
-const deployments = {
-  "ethereum-sepolia": "0xYourSepoliaAddress",
-  "arbitrum-sepolia": "0xYourArbitrumAddress",
-};
+const baseContract: OmniPointHardhat = {
+    eid: EndpointId.BASESEP_V2_TESTNET,
+    contractName: 'PingPong',
+}
 
-const contractName = "PingPong";
+const arbitrumContract: OmniPointHardhat = {
+    eid: EndpointId.ARBSEP_V2_TESTNET,
+    contractName: 'PingPong',
+}
+
+// Use higher gas for ABA pattern
+const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
+    {
+        msgType: 1,
+        optionType: ExecutorOptionType.LZ_RECEIVE,
+        gas: 250000, // Higher gas for nested messaging
+        value: 0,
+    },
+]
+
+const pathways: TwoWayConfig[] = [
+    [
+        baseContract,
+        arbitrumContract,
+        [['LayerZero Labs'], []],
+        [1, 1],
+        [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS],
+    ],
+]
 ```
 
-Run configuration:
+### Step 5: Wire Connections
 
 ```bash
-npx hardhat run src/scripts/configure.ts --network ethereum-sepolia
-npx hardhat run src/scripts/configure.ts --network arbitrum-sepolia
+pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts
 ```
 
 ## Testing the ABA Pattern
@@ -381,16 +432,16 @@ npx hardhat run src/scripts/configure.ts --network arbitrum-sepolia
 ### Step 1: Build Options and Quote Fee
 
 ```bash
-npx hardhat console --network ethereum-sepolia
+npx hardhat console --network base-sepolia
 ```
 
 ```javascript
 const { Options } = require("@layerzerolabs/lz-v2-utilities");
 const PingPong = await ethers.getContractFactory("PingPong");
-const pingPong = PingPong.attach("0xYourSepoliaAddress");
+const pingPong = PingPong.attach("0xYourBaseSepoliaAddress");
 
 const arbSepoliaEid = 40231;
-const sepoliaEid = 40161;
+const baseSepoliaEid = 40245;
 
 // 1. Build pong options (B → A)
 const returnOptions = Options.newOptions()
@@ -398,7 +449,7 @@ const returnOptions = Options.newOptions()
   .toHex();
 
 // 2. Quote pong cost
-const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
+const pongFee = await pingPong.quotePong(baseSepoliaEid, returnOptions, false);
 console.log(`Pong fee: ${ethers.utils.formatEther(pongFee.nativeFee)} ETH`);
 
 // 3. Build ping options with pong gas pre-allocated
@@ -437,14 +488,14 @@ Go to [LayerZero Scan](https://layerzeroscan.com) and enter your transaction has
 
 You should see:
 
-1. **First message**: Ping from Sepolia to Arbitrum (~2-5 minutes)
-2. **Second message**: Automatic pong from Arbitrum back to Sepolia (~2-5 minutes)
+1. **First message**: Ping from Base Sepolia to Arbitrum (~2-5 minutes)
+2. **Second message**: Automatic pong from Arbitrum back to Base Sepolia (~2-5 minutes)
 
 Total round-trip: ~5-10 minutes
 
 ### Step 4: Verify on Both Chains
 
-**On Sepolia** (where you sent ping):
+**On Base Sepolia** (where you sent ping):
 
 ```javascript
 const pings = await pingPong.pingsSent();
