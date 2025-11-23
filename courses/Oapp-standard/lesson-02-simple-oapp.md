@@ -157,15 +157,15 @@ function _lzReceive(
 
 Before deployment, compile your contract to verify there are no errors:
 
+Compile all contracts (uses both Forge and Hardhat)
+
 ```bash
-# Compile all contracts (uses both Forge and Hardhat)
 pnpm compile
+```
 
-# Or compile with specific tools
-pnpm compile:hardhat  # Hardhat only
-pnpm compile:forge    # Foundry only
+If you need to clean and recompile
 
-# If you need to clean and recompile
+```bash
 pnpm clean && pnpm compile
 ```
 
@@ -180,53 +180,19 @@ This will:
 Deploying an OApp involves three main steps:
 
 1. **Deploy Contracts** - Use `pnpm deploy:contracts` to deploy to multiple chains
-2. **Verify Contracts** - Use `pnpm verify` to verify your contracts
-3. **Wire Contracts** - Use `pnpm wire` to wire your contracts and set there peers
+2. **Verify Contracts** - Verify the contracts so there methods can be seen on block explorers
+3. **Wire Contracts** - Configure the contracts to only accept messages from one another
 
 ### Step 1: Deploy Contracts
 
-Run the interactive deployment command:
+Run the deployment command:
 
 ```bash
-pnpm deploy:contract
+pnpm deploy:contracts
 ```
 
-**What happens step-by-step:**
-
-1. **Contract Selection**
-   - The script scans your `contracts/` directory for all `.sol` files
-   - You'll see a numbered list of available contracts (e.g., SimpleMessenger, RivalOappContract, etc.)
-   - Enter the number corresponding to the contract you want to deploy
-
-2. **Deploy Script Update**
-   - The script automatically updates `deploy/OApp.ts`, replacing the `contractName` variable with your selection
-   - This ensures the correct contract will be deployed
-
-3. **Network Selection** (Interactive)
-   - LayerZero's deployment tool will prompt you to select networks
-   - You'll see a list of available networks from your `hardhat.config.ts`
-   - Use the arrow keys and spacebar to select multiple networks (e.g., Arbitrum Sepolia and Ethereum Sepolia)
-   - Press Enter to confirm your selection
-
-4. **Deployment Execution**
-   - For each selected network, the script:
-     - Connects to the network using your configured RPC URL
-     - Retrieves the LayerZero EndpointV2 address for that network
-     - Deploys your contract with constructor arguments:
-       - `_endpoint`: The LayerZero EndpointV2 address for that chain
-       - `_owner`: Your deployer address (from MNEMONIC or PRIVATE_KEY)
-     - Waits for deployment confirmation
-     - Saves deployment artifacts to `deployments/{network-name}/{ContractName}.json`
-
-5. **Deployment Summary**
-   - You'll see output showing:
-     - Network name
-     - Deployer address
-     - Deployed contract address
-     - Gas used
-     - Transaction hash
-
 **Example Output:**
+
 ```
 📦 Available contracts:
 
@@ -258,9 +224,9 @@ Deployed contract: SimpleMessenger, network: ethereum-sepolia, address: 0xDEF456
 ```
 
 **Files Created:**
+
 - `deployments/arbitrum-sepolia/SimpleMessenger.json` - Contract ABI, address, and deployment details
 - `deployments/ethereum-sepolia/SimpleMessenger.json` - Contract ABI, address, and deployment details
-- `deployments/{network}/solcInputs/*.json` - Compiler input for verification
 
 ### Step 2: Verify Contracts
 
@@ -269,76 +235,29 @@ After deployment, verify your contracts on block explorers (Etherscan, Arbiscan,
 **Run verification:**
 
 ```bash
-pnpm verify
-```
-
-**What happens step-by-step:**
-
-1. **Hardhat Verify Task**
-   - Uses `@nomicfoundation/hardhat-verify` plugin
-   - Reads deployment artifacts from `deployments/` directory
-
-2. **Interactive Network Selection**
-   - The command will prompt you to select which network to verify
-   - Or you can specify directly: `pnpm hardhat verify --network arbitrum-sepolia 0xYourContractAddress "constructor-arg-1" "constructor-arg-2"`
-
-3. **For Each Contract:**
-   - Retrieves the contract address from deployment artifacts
-   - Gets constructor arguments (EndpointV2 address and owner)
-   - Compiles the contract to generate standard JSON input
-   - Submits source code to the appropriate block explorer API
-
-4. **API Key Validation**
-   - Checks for API keys in your `.env` file:
-     - `ETHERSCAN_API_KEY` - For Ethereum, Arbitrum, Base, Optimism testnets
-     - `POLYGONSCAN_API_KEY` - For Polygon Amoy
-   - If missing, you'll get an error message
-
-5. **Verification Confirmation**
-   - Once verified, you'll receive confirmation with a link to the verified contract
-   - The contract's source code, ABI, and compiler settings become publicly viewable
-
-**Manual Verification (Alternative):**
-
-If automated verification fails, you can verify manually:
-
-```bash
 # For Arbitrum Sepolia deployment
-pnpm hardhat verify --network arbitrum-sepolia \
-  0xYourContractAddress \
-  "0xEndpointV2Address" \
-  "0xYourOwnerAddress"
+pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger 0x6EDCE65403992e310A62460808c4b910D972f10f
 
 # For Ethereum Sepolia deployment
-pnpm hardhat verify --network ethereum-sepolia \
-  0xYourContractAddress \
-  "0xEndpointV2Address" \
-  "0xYourOwnerAddress"
+pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger 0x6EDCE65403992e310A62460808c4b910D972f10f
 ```
+
+**Note:** The `--contract` flag specifies the exact contract path to avoid ambiguity. The EndpointV2 address (`0x6EDCE65403992e310A62460808c4b910D972f10f`) is the same for all testnets.
 
 **Example Output:**
+
 ```
-Verifying contract on Arbiscan...
 Successfully submitted source code for contract
-contracts/SimpleMessenger.sol:SimpleMessenger at 0xABC123...
+contracts/Oapp/SimpleMessenger.sol:SimpleMessenger at 0xABC123...
 for verification on the block explorer. Waiting for verification result...
 
-Successfully verified contract SimpleMessenger on Arbiscan.
+Successfully verified contract SimpleMessenger on the block explorer.
 https://sepolia.arbiscan.io/address/0xABC123...#code
-
-Verifying contract on Etherscan...
-Successfully verified contract SimpleMessenger on Etherscan.
-https://sepolia.etherscan.io/address/0xDEF456...#code
 ```
 
-**Troubleshooting Verification:**
-
-- **"Missing API Key"**: Add the required API key to your `.env` file
-- **"Already Verified"**: Contract was previously verified, you can skip this
-- **"Compiler version mismatch"**: Ensure your `hardhat.config.ts` Solidity version matches the deployment
-- **"Constructor arguments mismatch"**: Double-check the EndpointV2 and owner addresses
-
 ### Step 3: Wire Contracts (Configure Cross-Chain Connections)
+
+Note that solana peer configuration requires a custom config file and will require the manual deployment as shown below.
 
 After deployment, contracts need to be "wired" to establish trusted peer relationships and configure messaging parameters.
 
@@ -366,6 +285,7 @@ pnpm wire
 
 3. **Deployment Display**
    - Shows all deployments for the selected contract:
+
      ```
      📦 Deployments for SimpleMessenger:
 
@@ -410,39 +330,6 @@ pnpm wire
    - If file exists, prompts to overwrite
 
 8. **Config File Structure** (Example):
-   ```typescript
-   import { EndpointId } from '@layerzerolabs/lz-definitions'
-   import { ExecutorOptionType } from '@layerzerolabs/lz-v2-utilities'
-
-   const arbitrumContract: OmniPointHardhat = {
-       eid: EndpointId.ARBSEP_V2_TESTNET,
-       contractName: 'SimpleMessenger',
-   }
-
-   const ethereumContract: OmniPointHardhat = {
-       eid: EndpointId.SEPOLIA_V2_TESTNET,
-       contractName: 'SimpleMessenger',
-   }
-
-   const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
-       {
-           msgType: 1,
-           optionType: ExecutorOptionType.LZ_RECEIVE,
-           gas: 200000,
-           value: 0,
-       },
-   ]
-
-   const pathways: TwoWayConfig[] = [
-       [
-           arbitrumContract,
-           ethereumContract,
-           [['LayerZero Labs'], []],
-           [1, 1],
-           [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS],
-       ],
-   ]
-   ```
 
 9. **Wiring Execution Prompt**
    - Asks: `🔧 Wire the OApp connections now? (Y/n):`
@@ -472,17 +359,6 @@ pnpm wire
       - Compares with desired configuration from config file
       - Reports any discrepancies
 
-11. **Completion Summary**
-    ```
-    ✅ OApp wiring complete!
-
-    🎉 Your OApp is now configured and ready to send cross-chain messages!
-
-    📝 Next steps:
-       - Test sending a message: pnpm hardhat lz:oapp:send
-       - Check config: pnpm hardhat lz:oapp:config:get --oapp-config deployments/peer-configurations/SimpleMessenger.config.ts
-    ```
-
 **What Wiring Accomplishes:**
 
 ✅ **Peer Registration**: Each contract knows the trusted address of its counterpart on other chains
@@ -493,346 +369,6 @@ pnpm wire
 
 ✅ **Bidirectional Communication**: Both directions of each pathway are configured (A→B and B→A)
 
-**Verify Wiring (Optional):**
-
-Check the current configuration:
-
-```bash
-pnpm hardhat lz:oapp:config:get --oapp-config deployments/peer-configurations/SimpleMessenger.config.ts
-```
-
-This shows:
-- Custom configurations you've set
-- Default configurations (inherited from global defaults)
-- Active configurations (what's currently enforced)
-
-**Manual Wiring (Alternative):**
-
-If you skipped wiring or need to wire later:
-
-```bash
-pnpm hardhat lz:oapp:wire --oapp-config deployments/peer-configurations/SimpleMessenger.config.ts
-```
-
-**Updating Configuration:**
-
-If you need to change gas limits or DVN settings:
-
-1. Edit the config file in `deployments/peer-configurations/{ContractName}.config.ts`
-2. Run wiring again: `pnpm wire` or `pnpm hardhat lz:oapp:wire --oapp-config {path-to-config}`
-3. The tool will only execute transactions for changed settings
-
-**Common Wiring Issues:**
-
-- **"Insufficient funds"**: Ensure deployer has native tokens on all networks
-- **"Transaction failed"**: Check gas limits and RPC connectivity
-- **"Peer already set"**: This is okay - the tool will skip if already configured
-- **"Unauthorized"**: Ensure you're using the owner account specified during deployment
-
-## Sending Your First Cross-Chain Message
-
-Now that everything is deployed and configured, let's send a message!
-
-### Option 1: Using LayerZero Send Task (Recommended)
-
-If you created a custom task for your SimpleMessenger, you can use it directly:
-
-```bash
-# Send from Base Sepolia to Arbitrum Sepolia
-pnpm hardhat lz:oapp:send --dst-eid 40231 --string "Hello from Base!" --network base-sepolia
-```
-
-Replace `lz:oapp:send` with your custom task name if different. This will:
-
-- Automatically quote the gas cost
-- Send the message with proper fee
-- Return a LayerZero Scan link to track the message
-
-### Option 2: Using Hardhat Console
-
-For more control, use the Hardhat console:
-
-```bash
-# Connect to Base Sepolia
-npx hardhat console --network base-sepolia
-```
-
-Then in the console:
-
-```javascript
-// Get contract instance
-const SimpleMessenger = await ethers.getContractFactory("SimpleMessenger");
-const messenger = SimpleMessenger.attach("0xYourBaseSepoliaAddress");
-
-// Get quote for sending to Arbitrum Sepolia
-const arbSepoliaEid = 40231; // Arbitrum Sepolia endpoint ID
-const message = "Hello from Base Sepolia!";
-const options = "0x"; // Use default options
-
-const fee = await messenger.quote(arbSepoliaEid, message, options, false);
-console.log(`Fee: ${ethers.utils.formatEther(fee.nativeFee)} ETH`);
-
-// Send the message
-const tx = await messenger.sendMessage(arbSepoliaEid, message, options, {
-  value: fee.nativeFee,
-});
-console.log(`Transaction hash: ${tx.hash}`);
-
-// Wait for confirmation
-await tx.wait();
-console.log("✅ Message sent!");
-```
-
-### Option 3: Using Block Explorers
-
-You can also interact directly through block explorers like Etherscan:
-
-1. Go to your contract address on Base Sepolia Etherscan
-2. Navigate to "Write Contract"
-3. Connect your wallet
-4. Call `quote()` first to get the fee
-5. Call `sendMessage()` with the message and fee value
-
-### Tracking Your Message
-
-After sending, you can track your cross-chain message on LayerZero Scan:
-
-1. Go to [LayerZero Scan](https://layerzeroscan.com)
-2. Enter your transaction hash
-3. Watch the message progress through verification and execution
-
-Expected timeline:
-
-- **Verification**: 1-5 minutes (depends on block confirmations)
-- **Execution**: 1-2 minutes (after verification)
-
-### Verifying Receipt
-
-Check on the destination chain (Arbitrum Sepolia):
-
-```bash
-# Connect to Arbitrum Sepolia
-npx hardhat console --network arbitrum-sepolia
-```
-
-```javascript
-const SimpleMessenger = await ethers.getContractFactory("SimpleMessenger");
-const messenger = SimpleMessenger.attach("0xYourArbitrumSepoliaAddress");
-
-// Check last received message
-const lastMessage = await messenger.lastMessage();
-console.log(`Last message: ${lastMessage}`);
-
-// Check message count
-const count = await messenger.messagesReceived();
-console.log(`Messages received: ${count}`);
-
-// Get specific message from history
-const firstMessage = await messenger.messageHistory(1);
-console.log(`Message #1: ${firstMessage}`);
-```
-
-## Common Issues and Solutions
-
-### Issue 1: "Insufficient fee"
-
-**Problem**: Transaction reverts with insufficient fee error.
-
-**Solution**: Always call `quote()` first and use the returned fee:
-
-```javascript
-const fee = await messenger.quote(dstEid, message, options, false);
-await messenger.sendMessage(dstEid, message, options, { value: fee.nativeFee });
-```
-
-### Issue 2: "Peer not set"
-
-**Problem**: Message fails with "no peer" error.
-
-**Solution**: Ensure you've run `lz:oapp:wire` to configure peers:
-
-```bash
-pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts
-```
-
-Or manually set peers if needed:
-
-```javascript
-await messenger.setPeer(dstEid, ethers.utils.zeroPad(dstAddress, 32));
-```
-
-### Issue 3: Message stuck in "Verification"
-
-**Problem**: Message verified but not executed.
-
-**Solution**: Check enforced options in your `layerzero.config.ts`. Increase gas limits:
-
-```typescript
-const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
-  {
-    msgType: 1,
-    optionType: ExecutorOptionType.LZ_RECEIVE,
-    gas: 300000, // Increased from 200000
-    value: 0,
-  },
-];
-```
-
-Then re-run `pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts`.
-
-### Issue 4: "Out of gas" on destination
-
-**Problem**: Execution fails due to insufficient gas.
-
-**Solution**: Update enforced options in `layerzero.config.ts` with sufficient gas for your `_lzReceive()` function, then re-wire.
-
-## Writing Custom Tasks
-
-You can create custom Hardhat tasks to interact with your OApp. Tasks provide a convenient CLI interface for common operations.
-
-### Task Structure
-
-Create task files in the `tasks/` directory:
-
-```typescript
-// tasks/myCustomTask.ts
-import { task, types } from "hardhat/config";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import {
-  getDeployedContract,
-  logNetworkInfo,
-  logSuccess,
-  logError,
-} from "./helpers/taskHelpers";
-
-task("lz:oapp:myTask", "Description of what this task does")
-  .addParam("dstEid", "Destination endpoint ID", undefined, types.int)
-  .addParam("message", "Message to send", undefined, types.string)
-  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
-    try {
-      // Log network info
-      await logNetworkInfo(hre);
-
-      // Get deployed contract
-      const { contract } = await getDeployedContract(hre, "MyOApp");
-
-      // Interact with contract
-      const tx = await contract.doSomething(args.dstEid, args.message);
-      await tx.wait();
-
-      logSuccess("Task completed!");
-    } catch (error) {
-      logError("Task failed", error);
-      throw error;
-    }
-  });
-```
-
-### Using Helper Functions
-
-The repository includes helper functions in `tasks/helpers/taskHelpers.ts`:
-
-```typescript
-// Get deployed contract
-const { address, contract } = await getDeployedContract(hre, "MyOApp");
-
-// Log network information
-await logNetworkInfo(hre);
-// Outputs: Network, Signer address, Balance
-
-// Logging messages
-logInfo("Processing...");
-logSuccess("Done!");
-logWarning("Be careful!");
-logError("Failed!", error);
-
-// Get network from endpoint ID
-const networkName = getNetworkFromEid(40231); // 'arbitrum-sepolia'
-
-// Get transaction links
-const scanLink = getLayerZeroScanLink(txHash, true);
-const explorerLink = getBlockExplorerLink("arbitrum-sepolia", txHash);
-```
-
-### Example: Query Status Task
-
-Create a task to query your OApp status:
-
-```typescript
-// tasks/getStatus.ts
-import { task } from "hardhat/config";
-import { getDeployedContract, logInfo } from "./helpers/taskHelpers";
-
-task("lz:oapp:status", "Get OApp status and statistics").setAction(
-  async (args, hre) => {
-    const { address, contract } = await getDeployedContract(hre, "MyOApp");
-
-    const messagesSent = await contract.messagesSent();
-    const messagesReceived = await contract.messagesReceived();
-    const lastMessage = await contract.lastMessage();
-
-    console.log("\n📊 Contract Status:");
-    console.log(`  Address: ${address}`);
-    console.log(`  Messages Sent: ${messagesSent}`);
-    console.log(`  Messages Received: ${messagesReceived}`);
-    console.log(`  Last Message: "${lastMessage}"\n`);
-
-    return {
-      address,
-      messagesSent: messagesSent.toString(),
-      messagesReceived: messagesReceived.toString(),
-      lastMessage,
-    };
-  },
-);
-```
-
-**Usage:**
-
-```bash
-npx hardhat lz:oapp:status --network arbitrum-sepolia
-```
-
-### Importing Tasks
-
-Import your task in `hardhat.config.ts`:
-
-```typescript
-// hardhat.config.ts
-import "./tasks/myCustomTask";
-import "./tasks/getStatus";
-```
-
-### Complete Task Example
-
-The `tasks/sendMessage.ts` file provides a complete example of a production-ready task. Key features:
-
-1. **Parameter validation** - Validates inputs before execution
-2. **Fee quoting** - Automatically quotes gas costs
-3. **Transaction handling** - Sends transaction and waits for confirmation
-4. **Comprehensive logging** - Shows network info, fees, and transaction details
-5. **Error handling** - Catches and logs errors appropriately
-6. **Return values** - Returns structured data for programmatic use
-
-**View the complete implementation**: [tasks/sendMessage.ts](../../tasks/sendMessage.ts)
-
-### Task Best Practices
-
-1. **Use TypeScript** for type safety
-2. **Validate inputs** before executing transactions
-3. **Use helper functions** to avoid code duplication
-4. **Provide clear output** with emojis and formatting
-5. **Handle errors** gracefully with try-catch blocks
-6. **Return structured data** for programmatic use
-7. **Follow naming conventions**: `lz:oapp:action` format
-
-### Learn More
-
-For a comprehensive guide on writing tasks, including more examples and patterns, see:
-
-- [Writing Tasks Guide](../../docs/WRITING_TASKS.md)
-- [Task Helpers Reference](../../tasks/helpers/taskHelpers.ts)
-
 ## Next Steps
 
 Congratulations! You've built and deployed your first OApp. Next, you can:
@@ -842,12 +378,9 @@ Congratulations! You've built and deployed your first OApp. Next, you can:
 3. **Multi-Chain**: Deploy to all 5 supported testnets and create a mesh network
 4. **Build UIs**: Create a frontend with wagmi/viem to interact with your OApp
 
-In **Lesson 03**, we'll explore advanced patterns like:
+In the next lesson, you'll learn how to create custom Hardhat tasks to interact with your deployed contracts, providing a convenient CLI interface for common operations like sending messages and querying status.
 
-- Token transfers with OFT (Omnichain Fungible Tokens)
-- Batching multiple messages
-- Handling failed messages and retries
-- Security best practices and auditing
+[Start Lesson 03](./lesson-03-hardhat-tasks.md)
 
 ## Key Takeaways
 
@@ -872,3 +405,54 @@ In **Lesson 03**, we'll explore advanced patterns like:
 - [Endpoint Addresses](https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts) - All networks
 - [Deploying Contracts](https://docs.layerzero.network/v2/developers/evm/create-lz-oapp/deploying) - Deployment guide
 - [Wiring OApps](https://docs.layerzero.network/v2/developers/evm/create-lz-oapp/wiring) - Configuration guide
+
+## Extended
+
+### Manual Contract Wiring (Required for solana and more complex configurations)
+
+1. Create your config file
+
+   ```typescript
+   import { EndpointId } from "@layerzerolabs/lz-definitions";
+   import { ExecutorOptionType } from "@layerzerolabs/lz-v2-utilities";
+
+   const arbitrumContract: OmniPointHardhat = {
+     eid: EndpointId.ARBSEP_V2_TESTNET,
+     contractName: "SimpleMessenger",
+   };
+
+   const ethereumContract: OmniPointHardhat = {
+     eid: EndpointId.SEPOLIA_V2_TESTNET,
+     contractName: "SimpleMessenger",
+   };
+
+   const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
+     {
+       msgType: 1,
+       optionType: ExecutorOptionType.LZ_RECEIVE,
+       gas: 200000,
+       value: 0,
+     },
+   ];
+
+   const pathways: TwoWayConfig[] = [
+     [
+       arbitrumContract,
+       ethereumContract,
+       [["LayerZero Labs"], []],
+       [1, 1],
+       [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS],
+     ],
+   ];
+   ```
+
+```bash
+`pnpm hardhat lz:oapp:wire --oapp-config {path-to-config}
+```
+
+**Common Wiring Issues:**
+
+- **"Insufficient funds"**: Ensure deployer has native tokens on all networks
+- **"Transaction failed"**: Check gas limits and RPC connectivity
+- **"Peer already set"**: This is okay - the tool will skip if already configured
+- **"Unauthorized"**: Ensure you're using the owner account specified during deployment

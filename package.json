@@ -15,10 +15,8 @@
     "test": "$npm_execpath run test:forge && $npm_execpath run test:hardhat",
     "test:forge": "forge test",
     "test:hardhat": "hardhat test",
-    "wire": "./scripts/wire.sh",
-    "deploy:contract": "hardhat deploy:interactive",
-    "send": "hardhat lz:send:interactive",
-    "verify": "hardhat verify:interactive"
+    "deploy:contracts": "hardhat deploy:interactive",
+    "wire": "./scripts/wire.sh"
   },
   "resolutions": {
     "ethers": "^5.7.2",

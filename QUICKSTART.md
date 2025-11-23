@@ -15,35 +15,60 @@ Here's what you'll find in this repository:
 
 ```text
 layer-zero-course/
+├── contracts/
+│   ├── Oapp/                         # Your OApp contracts
+│   │   └── SimpleMessenger.sol
+│   └── lessons/Oapp/                 # Example lesson contracts
+│       ├── ExampleSimpleMessenger.sol
+│       ├── ExamplePingPong.sol
+│       ├── ExampleMultichainBroadcaster.sol
+│       ├── ExampleSolanaMessenger.sol
+│       └── RivalOappContract.sol
 ├── courses/
-│   ├── Oapp-standard/
-│   ├── OFT-standard (Coming Soon)/
-│   ├── ONFT-standard (Coming Soon)/
-│   └── Ovault-standard (Coming Soon)/
-├── src/
-│   ├── contracts/
-│   │   └── lessons/Oapp/ # Oapp Example lesson contracts and challenge contracts
-│   ├── scripts/
-│   │   ├── deploy.ts      # Generic Oapp deployment script
-│   │   └── configure.ts   # Generic Peer configuration script
-│   ├── utils/
-│   │   ├── deploy-oapp.ts              # Deployment utilities
-│   │   └── configure-oapp-peers.ts     # Peer configuration utilities
-│   ├── tests/ # Contract test
-│   └── diagrams/ # course images and diagrams
+│   └── Oapp-standard/                # OApp course lessons
+│       ├── lesson-01-basics.md
+│       ├── lesson-02-simple-oapp.md
+│       ├── lesson-03-hardhat-tasks.md
+│       ├── lesson-04-aba-messaging.md
+│       ├── lesson-05-multichain-messaging.md
+│       ├── lesson-06-solana-interaction.md
+│       ├── lesson-07-protocol-deep-dive.md
+│       ├── lesson-08-challenges.md
+│       ├── challenges/               # Coding challenges
+│       └── solutions/                # Challenge solutions
+├── deploy/
+│   └── OApp.ts                       # Deployment script
+├── deployments/                      # Deployed contract artifacts
+│   ├── arbitrum-sepolia/
+│   ├── ethereum-sepolia/
+│   └── peer-configurations/          # Generated wiring configs
+├── tasks/
+│   ├── index.ts                      # Task barrel file
+│   ├── exampleTask.ts
+│   └── helpers/
+│       ├── taskHelpers.ts            # Shared task utilities
+│       ├── configGenerator.ts        # Config generation
+│       ├── deployInteractive.ts      # Interactive deployment
+│       └── wireInteractive.ts        # Interactive wiring
 ├── hardhat.config.ts                 # Hardhat configuration
+├── layerzero.config.ts               # LayerZero OApp config
+├── foundry.toml                      # Foundry configuration
 ├── package.json                      # Dependencies
 ├── tsconfig.json                     # TypeScript configuration
 ├── .env.example                      # Environment template
 ├── QUICKSTART.md                     # This file
-└── LICENSE                           # MIT License
+├── CLAUDE.md                         # AI assistant instructions
+└── README.md                         # Project overview
 ```
 
 **Key Directories:**
 
-- `src/contracts/` - Where you build your contracts
-- `src/scripts/` - Deployment and configuration scripts
-- `courses/` - Step-by-step lessons and challenges
+- `contracts/` - Your Solidity contracts
+- `contracts/lessons/Oapp/` - Example contracts for each lesson
+- `courses/Oapp-standard/` - Step-by-step lessons and challenges
+- `tasks/` - Custom Hardhat tasks for deployment and interaction
+- `deploy/` - Deployment scripts
+- `deployments/` - Deployed contract artifacts and configs
 
 ## Step 1: Install Dependencies
 

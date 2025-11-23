@@ -1,8 +1,9 @@
-import { task } from 'hardhat/config'
-import { ActionType } from 'hardhat/types'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as readline from 'readline'
+
+import { task } from 'hardhat/config'
+import { ActionType } from 'hardhat/types'
 
 interface DeployTaskArgs {
     contract?: string
@@ -12,7 +13,7 @@ const deployInteractive: ActionType<DeployTaskArgs> = async (taskArgs, hre) => {
     const { contract } = taskArgs
 
     // Find all Solidity contracts
-    const contractsDir = path.join(__dirname, '..', 'contracts')
+    const contractsDir = path.join(process.cwd(), 'contracts')
     const contracts: string[] = []
 
     function findContracts(dir: string) {
@@ -77,7 +78,7 @@ const deployInteractive: ActionType<DeployTaskArgs> = async (taskArgs, hre) => {
     console.log(`\n✅ Selected contract: ${selectedContract}\n`)
 
     // Update deploy/OApp.ts with selected contract
-    const deployScriptPath = path.join(__dirname, '..', 'deploy', 'OApp.ts')
+    const deployScriptPath = path.join(process.cwd(), 'deploy', 'OApp.ts')
     let deployScript = fs.readFileSync(deployScriptPath, 'utf-8')
 
     // Replace the contractName value
@@ -87,7 +88,6 @@ const deployInteractive: ActionType<DeployTaskArgs> = async (taskArgs, hre) => {
     )
 
     fs.writeFileSync(deployScriptPath, deployScript)
-    console.log(`📝 Updated deploy/OApp.ts with contract: ${selectedContract}`)
 
     // Run the deployment
     console.log(`\n🚀 Running deployment for ${selectedContract}...\n`)
@@ -101,6 +101,6 @@ const deployInteractive: ActionType<DeployTaskArgs> = async (taskArgs, hre) => {
     }
 }
 
-task('deploy:interactive', 'Interactively select and deploy a contract')
+export default task('deploy:interactive', 'Interactively select and deploy a contract')
     .addOptionalParam('contract', 'Contract name to deploy (skip interactive selection)')
     .setAction(deployInteractive)

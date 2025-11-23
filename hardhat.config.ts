@@ -9,9 +9,7 @@ import { EndpointId } from '@layerzerolabs/lz-definitions'
 
 import type { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 
-import './tasks/wireInteractive'
-import './tasks/deployInteractive'
-import './tasks/sendInteractive'
+import './tasks/index'
 
 // eslint-disable-next-line import/no-named-as-default-member -- IGNORE -
 dotenv.config()
@@ -55,52 +53,7 @@ const config: HardhatUserConfig = {
         ],
     },
     etherscan: {
-        apiKey: {
-            // Ethereum
-            sepolia: process.env.ETHERSCAN_API_KEY || '',
-            // Arbitrum
-            arbitrumSepolia: process.env.ETHERSCAN_API_KEY || '',
-            // Base
-            baseSepolia: process.env.ETHERSCAN_API_KEY || '',
-            // Optimism
-            optimismSepolia: process.env.ETHERSCAN_API_KEY || '',
-            // Polygon
-            polygonAmoy: process.env.POLYGONSCAN_API_KEY || '',
-        },
-        customChains: [
-            {
-                network: 'arbitrum-sepolia',
-                chainId: 421614,
-                urls: {
-                    apiURL: 'https://api-sepolia.arbiscan.io/api',
-                    browserURL: 'https://sepolia.arbiscan.io',
-                },
-            },
-            {
-                network: 'base-sepolia',
-                chainId: 84532,
-                urls: {
-                    apiURL: 'https://api-sepolia.basescan.org/api',
-                    browserURL: 'https://sepolia.basescan.org',
-                },
-            },
-            {
-                network: 'optimism-sepolia',
-                chainId: 11155420,
-                urls: {
-                    apiURL: 'https://api-sepolia-optimistic.etherscan.io/api',
-                    browserURL: 'https://sepolia-optimism.etherscan.io',
-                },
-            },
-            {
-                network: 'polygon-amoy',
-                chainId: 80002,
-                urls: {
-                    apiURL: 'https://api-amoy.polygonscan.com/api',
-                    browserURL: 'https://amoy.polygonscan.com',
-                },
-            },
-        ],
+        apiKey: process.env.ETHERSCAN_API_KEY || '',
     },
     sourcify: {
         enabled: false,
@@ -149,6 +102,11 @@ const config: HardhatUserConfig = {
     namedAccounts: {
         deployer: {
             default: 0, // wallet address of index[0], of the mnemonic in .env
+        },
+    },
+    verify: {
+        etherscan: {
+            apiKey: process.env.ETHERSCAN_API_KEY || '',
         },
     },
 }

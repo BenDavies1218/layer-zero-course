@@ -1,6 +1,7 @@
-import { EndpointId } from '@layerzerolabs/lz-definitions'
 import fs from 'fs'
 import path from 'path'
+
+import { EndpointId } from '@layerzerolabs/lz-definitions'
 
 /**
  * Maps network names (as they appear in deployments folder) to LayerZero Endpoint IDs

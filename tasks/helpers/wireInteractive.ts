@@ -6,7 +6,7 @@ import * as readline from 'readline'
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-import { generateConfigCode, getNetworkDisplayName, scanDeployments } from './helpers/configGenerator'
+import { generateConfigCode, getNetworkDisplayName, scanDeployments } from './configGenerator'
 
 function askQuestion(question: string): Promise<string> {
     const rl = readline.createInterface({
@@ -21,7 +21,7 @@ function askQuestion(question: string): Promise<string> {
     })
 }
 
-task('lz:oapp:wire:interactive', 'Interactive CLI for configuring and wiring OApp contracts')
+export default task('lz:oapp:wire:interactive', 'Interactive CLI for configuring and wiring OApp contracts')
     .addFlag('skipWire', 'Skip the wiring step, only generate config')
     .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
         console.log('\n🚀 LayerZero OApp Configuration Wizard\n')
