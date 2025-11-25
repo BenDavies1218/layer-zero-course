@@ -94,10 +94,36 @@ cp .env.example .env
 npx hardhat compile
 ```
 
-## Step 4
+## Where from here
 
 **Learn the fundamentals**
 
-Start with the Oapp Standard [Lesson 01 - LayerZero Basics](./courses/Oapp-standard/lesson-01-basics.md)
+Oapp Standard [Lesson 01 - LayerZero Basics](./courses/Oapp-standard/lesson-01-basics.md)
+
+This course is designed to introduce you to the LayerZero protocol. It's a mix of technical and fun challenges designed to make you understand the basics of cross-chain messaging and how far you can take an Omnichain application.
+
+---
+
+**OFT Token Standard**
+
+OFT Standard [Lesson 01 - OFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
+
+This course is the next step towards building Omnichain applications. It's recommended you have completed at least the OApp standard lessons, but you're not required to. The OFT standard is technical and the challenges are designed on real use cases and how to implement production-ready solutions for Omnichain apps.
+
+---
+
+**NOFT Standard**
+
+NOFT Standard [Lesson 01 - NOFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
+
+This course is very similar to the OFT standard. It's recommended you have completed at least the OApp standard lessons, but you're not required to. The NOFT standard is technical and the challenges are designed on real use cases and how to implement production-ready solutions for Omnichain apps.
+
+---
+
+**OVault Standard**
+
+OVault Standard [Lesson 01 - OVault Basics](./courses/Oapp-standard/lesson-01-basics.md)
+
+Building an Omnichain vault is the most challenging course here. You should have completed the OFT Standard or NOFT Standard before starting this. The OVault standard is quite technical and requires a high level of understanding as to how the LayerZero protocol works.
 
 ---
