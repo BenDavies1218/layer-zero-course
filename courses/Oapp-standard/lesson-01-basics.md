@@ -124,22 +124,6 @@ Retaining ownership allows you to:
 - Update security configurations
 - Adjust gas settings for changing network conditions
 
-### Ownership Operations Example
-
-```typescript
-// Deploy OApp
-MyOApp oapp = new MyOApp(endpoint, owner);
-
-// Configure peers (requires ownership)
-oapp.setPeer(dstEid, peerAddress);
-
-// Set enforced options (requires ownership)
-oapp.setEnforcedOptions(enforcedOptionsArray);
-
-// Transfer to multisig for production
-oapp.transferOwnership(multisigAddress);
-```
-
 ## Security Considerations
 
 ### Origin Validation
@@ -154,7 +138,7 @@ oapp.transferOwnership(multisigAddress);
   ) internal override {
       // The base contract already ensures only registered peers can send messages
 
-      // But if you are making external calls or updating state its always a good idea to validate here as well and be aware of other potential security problems
+      // But if you are making external calls or updating state its always a good idea to validate here as well.
 
       // Your business logic here
       processMessage(_message);
@@ -186,18 +170,18 @@ function _lzReceive(...) internal override {
 ### Gas Considerations
 
 - Always provide sufficient gas via `_options`
-- Use `quoteSendString()` to estimate costs
-- Account for variable gas prices on destination chains
-- Set reasonable enforced options as safety nets
+- Always create `quoteSend()` to estimate costs
+- Account for variable gas prices on destination chains, add native drops where nessecary.
+- Set reasonable enforced options as safety nets, add more than one DVN for better securety (at the expense of gas).
 
 ## Key Takeaways
 
 1. **OApp is the foundation** for all LayerZero cross-chain messaging
 2. **Endpoint V2** handles all protocol-level concerns (DVNs, Executors, verification)
 3. **Peer validation** is automatic - only registered peers can communicate
-4. **Ownership matters** - use multisig for production contracts
-5. **Gas planning** is critical - always quote before sending
-6. **Security first** - validate inputs, protect against reentrancy
+4. **Ownership matters** - try to use multisig for production contracts if possible.
+5. **Gas planning** is critical - always quote before sending, and sometimes if it fails add a native drop.
+6. **Security first** - validate inputs, protect against reentrancy and other smart contract exploits.
 
 ## Next Steps
 
@@ -213,5 +197,5 @@ function _lzReceive(...) internal override {
 
 - [LayerZero V2 Documentation](https://docs.layerzero.network/v2)
 - [LayerZero GitHub](https://github.com/LayerZero-Labs)
-- [LayerZero Scan](https://layerzeroscan.com) - Track your messages
+- [LayerZero Scan](https://layerzeroscan.com)
 - [Endpoint Addresses](https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts)

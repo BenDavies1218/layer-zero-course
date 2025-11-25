@@ -1,6 +1,6 @@
 # Lesson 02 — Building Your First OApp
 
-In this lesson, you'll build a simple cross-chain messaging application using LayerZero V2's OApp standard. We'll create a contract that sends messages between chains, deploy it to testnets, and execute cross-chain transactions.
+In this lesson, you'll build a simple cross-chain messaging application using LayerZero V2's OApp standard. We'll create a contract that can encoded messages between chains, deploy it to two testnets and verify them.
 
 ## What We're Building
 
@@ -70,7 +70,7 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
 The send function needs to:
 
 1. Encode the message
-2. Calculate the fee
+2. Combine the call options with the contracts enforment options.
 3. Call `_lzSend()` with proper parameters
 
 ```typescript
@@ -108,7 +108,7 @@ function sendMessage(
 Always provide a quote function so users can check costs before sending:
 
 ```typescript
-function quote(
+function quoteSend(
     uint32 _dstEid, // Destination Endpoint ID
     string calldata _message, // Message to send
     bytes calldata _options, // Execution options (gas limit, etc.)
@@ -242,7 +242,7 @@ pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleM
 pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger 0x6EDCE65403992e310A62460808c4b910D972f10f
 ```
 
-**Note:** The `--contract` flag specifies the exact contract path to avoid ambiguity. The EndpointV2 address (`0x6EDCE65403992e310A62460808c4b910D972f10f`) is the same for all testnets.
+**Note:** The `--contract` flag specifies the exact contract path to avoid ambiguity. The EndpointV2 address (`0x6EDCE65403992e310A62460808c4b910D972f10f`) is the same for all testnets. This will change for mainnet deployment / solana deployments.
 
 **Example Output:**
 
@@ -257,7 +257,7 @@ https://sepolia.arbiscan.io/address/0xABC123...#code
 
 ### Step 3: Wire Contracts (Configure Cross-Chain Connections)
 
-Note that solana peer configuration requires a custom config file and will require the manual deployment as shown below.
+Note that solana peer configuration requires a custom config file and will require the manual deployment, also the solana Oapp needs to be deployed first as well from a repository that supports solana.
 
 After deployment, contracts need to be "wired" to establish trusted peer relationships and configure messaging parameters.
 
@@ -361,42 +361,28 @@ pnpm wire
 
 **What Wiring Accomplishes:**
 
-✅ **Peer Registration**: Each contract knows the trusted address of its counterpart on other chains
-
-✅ **Enforced Options**: Minimum gas limits are set to prevent execution failures
-
-✅ **DVN Configuration**: Decentralized verifiers are configured to secure message delivery
-
-✅ **Bidirectional Communication**: Both directions of each pathway are configured (A→B and B→A)
+- **Peer Registration**: Each contract knows the trusted address of its counterpart on other chains
+- **Enforced Options**: Minimum gas limits are set to prevent execution failures
+- **DVN Configuration**: Decentralized verifiers are configured to secure message delivery
+- **Bidirectional Communication**: Both directions of each pathway are configured (A→B and B→A)
 
 ## Next Steps
 
-Congratulations! You've built and deployed your first OApp. Next, you can:
+Congratulations! You've built and deployed your first OApp.
 
-1. **Add Features**: Store sender addresses, add message replies, implement access controls
-2. **Optimize Gas**: Use packed encoding, optimize storage patterns
-3. **Multi-Chain**: Deploy to all 5 supported testnets and create a mesh network
-4. **Build UIs**: Create a frontend with wagmi/viem to interact with your OApp
+In the next lesson, you'll learn how to create custom Hardhat tasks to interact with your deployed contracts, providing a convenient interface for common operations like sending messages and querying status.
 
-In the next lesson, you'll learn how to create custom Hardhat tasks to interact with your deployed contracts, providing a convenient CLI interface for common operations like sending messages and querying status.
-
-[Start Lesson 03](./lesson-03-hardhat-tasks.md)
+[Start Lesson 03 - Hardhat Tasks](./lesson-03-hardhat-tasks.md)
 
 ## Key Takeaways
 
-✅ OApps extend `OApp` and `OAppOptionsType3` for cross-chain messaging
-
-✅ Always implement both send (`_lzSend`) and receive (`_lzReceive`) logic
-
-✅ Peers must be set on both chains for bidirectional communication
-
-✅ Always quote fees before sending messages
-
-✅ Use enforced options to guarantee sufficient gas for execution
-
-✅ Track messages on LayerZero Scan for debugging
-
-✅ Test thoroughly on testnets before mainnet deployment
+- OApps extend `OApp` and `OAppOptionsType3` for cross-chain messaging
+- Always implement both send (`_lzSend`) and receive (`_lzReceive`) logic
+- Peers must be set on both chains for bidirectional communication
+- Always quote fees before sending messages
+- Use enforced options to guarantee sufficient gas for execution
+- Track messages on LayerZero Scan for debugging
+- Test thoroughly on testnets before mainnet deployment
 
 ## Resources
 
@@ -408,7 +394,7 @@ In the next lesson, you'll learn how to create custom Hardhat tasks to interact 
 
 ## Extended
 
-### Manual Contract Wiring (Required for solana and more complex configurations)
+### Manual Contract Wiring (Required for solana and more custom configs)
 
 1. Create your config file
 

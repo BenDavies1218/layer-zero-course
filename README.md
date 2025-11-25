@@ -100,7 +100,7 @@ npx hardhat compile
 
 Oapp Standard [Lesson 01 - LayerZero Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
-This course is designed to introduce you to the LayerZero protocol. It's a mix of technical and fun challenges designed to make you understand the basics of cross-chain messaging and how far you can take an Omnichain application.
+This course is designed to introduce you to the LayerZero protocol. It's a mix of technical and fun challenges designed to indroduce you to the basics of cross-chain messaging and how far you can take an Omnichain application.
 
 ---
 
