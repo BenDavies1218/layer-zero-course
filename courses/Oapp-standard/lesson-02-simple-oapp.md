@@ -370,7 +370,7 @@ pnpm wire
 
 Congratulations! You've built and deployed your first OApp.
 
-In the next lesson, you'll learn how to create custom Hardhat tasks to interact with your deployed contracts, providing a convenient interface for common operations like sending messages and querying status.
+In the next lesson, you'll learn how to create Hardhat tasks to interact with your deployed contracts, providing a convenient interface for common operations like sending messages and querying status.
 
 [Start Lesson 03 - Hardhat Tasks](./lesson-03-hardhat-tasks.md)
 

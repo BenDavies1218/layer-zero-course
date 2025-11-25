@@ -1,6 +1,6 @@
 # Lesson 03 — Creating Hardhat Tasks for Contract Interaction
 
-In this lesson, you'll learn how to create custom Hardhat tasks to interact with your deployed OApp contracts. Tasks provide a convenient way for common operations like calling contract methods and querying state.
+In this lesson, you'll learn how to create Hardhat tasks to interact with your deployed OApp contracts. Tasks provide a convenient way for common operations like calling contract methods and querying state.
 
 ## What You'll Learn
 
@@ -11,9 +11,8 @@ In this lesson, you'll learn how to create custom Hardhat tasks to interact with
 
 Before starting, ensure you have:
 
-- Completed Lesson 02 (Building Your First OApp)
-- A deployed and wired OApp contract
-- Basic understanding of TypeScript
+- Completed Lesson 02 Simple Oapp
+- A deployed and wired your OApp contract
 
 ## Why Use Hardhat Tasks?
 
@@ -27,9 +26,21 @@ Hardhat tasks offer several advantages over manual console interaction:
 
 ## Task Basics
 
+### Parameter Types
+
+Hardhat provides several built-in parameter types that can be passed through the CLI:
+
+- `types.string` - String values
+- `types.int` - Integer numbers
+- `types.float` - Floating point numbers
+- `types.boolean` - Boolean values
+- `types.json` - JSON objects
+
+If you would rather hardcode values such as contract name or address in your task then your more than welcome.
+
 ### Task Structure
 
-Every Hardhat task has three main components:
+Every Hardhat I've written starts with this boiler plate code
 
 ```typescript
 import { task, types } from "hardhat/config";
@@ -37,22 +48,10 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 task("task:name", "Description of what this task does")
   .addParam("paramName", "Parameter description", undefined, types.string)
-  .addOptionalParam("optional", "Optional parameter", "default", types.string)
-  .addFlag("verbose", "Enable verbose output")
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     // Task implementation
   });
 ```
-
-### Parameter Types
-
-Hardhat provides several built-in parameter types:
-
-- `types.string` - String values
-- `types.int` - Integer numbers
-- `types.float` - Floating point numbers
-- `types.boolean` - Boolean values
-- `types.json` - JSON objects
 
 ## Step 1: Create a Simple Query Task
 
@@ -66,22 +65,27 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 task("lz:oapp:status", "Get OApp status and statistics").setAction(
   async (args, hre: HardhatRuntimeEnvironment) => {
+    // Get the network that hardhat is connected to
     const network = hre.network.name;
     console.log(`\n📊 Querying OApp on ${network}...\n`);
 
-    // Get deployment
+    // Get the deployment
     const deployment = await hre.deployments.get("SimpleMessenger");
+
+    // Call the getContractAt()
     const contract = await hre.ethers.getContractAt(
       "SimpleMessenger",
       deployment.address,
     );
 
-    // Query state
+    // Now you can call any method on the contract you want.
+
+    // Lets Query state
     const messagesSent = await contract.messagesSent();
     const messagesReceived = await contract.messagesReceived();
     const lastMessage = await contract.lastMessage();
 
-    // Display results
+    // Console Log Display results, here you could write stuff to a JSON or whatever you want.
     console.log("Contract Status:");
     console.log(`  Address: ${deployment.address}`);
     console.log(`  Messages Sent: ${messagesSent}`);
@@ -91,7 +95,7 @@ task("lz:oapp:status", "Get OApp status and statistics").setAction(
 );
 ```
 
-### Registering Tasks
+## Step 2. Registering Tasks
 
 Each Task must be imported in your `/tasks/index.ts`:
 
@@ -101,28 +105,11 @@ import "./helpers/wireInteractive";
 import "./getStatus";
 ```
 
-**Usage:**
+## Step 3. Running the Task
 
 ```bash
 pnpm hardhat lz:oapp:status --network arbitrum-sepolia
 ```
-
-## Step 2: Using Helper Functions
-
-The repository includes helper functions to simplify task development. These are located in `tasks/helpers/taskHelpers.ts`.
-
-### Available Helpers
-
-```typescript
-import { getDeployedContract } from "./helpers/taskHelpers";
-```
-
-### Helper Descriptions
-
-**`getDeployedContract(hre, contractName)`**
-
-- Returns `{ address, contract }` for a deployed contract
-- Throws if contract not found
 
 ## Step 3: Create a Send Message Task
 
@@ -141,19 +128,18 @@ import { getDeployedContract } from "./helpers/taskHelpers";
 task("lz:messenger:send", "Send a cross-chain message")
   .addParam("dstEid", "Destination endpoint ID", undefined, types.int)
   .addParam("message", "Message to send", undefined, types.string)
-  .addOptionalParam("gas", "Gas limit for lzReceive", 200000, types.int)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     try {
-      // Get deployed contract
+      // Get deployed contract helper
       const { contract } = await getDeployedContract(hre, "SimpleMessenger");
 
       // Build options with gas limit
       const options = Options.newOptions()
-        .addExecutorLzReceiveOption(args.gas, 0)
+        .addExecutorLzReceiveOption(200000, 0)
         .toBytes();
 
       // Quote the fee
-      const fee = await contract.quote(
+      const fee = await contract.quoteSend(
         args.dstEid,
         args.message,
         options,
@@ -164,7 +150,7 @@ task("lz:messenger:send", "Send a cross-chain message")
         `Estimated native fee to send message: ${hre.ethers.utils.formatEther(fee.nativeFee)} ETH`,
       );
 
-      console.log("\n⏳ Sending message...\n");
+      // Normally you would check the balance of the users account here
 
       // Send the message
       const tx = await contract.sendMessage(
@@ -173,6 +159,8 @@ task("lz:messenger:send", "Send a cross-chain message")
         options,
         { value: fee.nativeFee },
       );
+
+      console.log("\n⏳ Sending message...\n");
 
       // Wait for confirmation
       const receipt = await tx.wait();
@@ -186,12 +174,6 @@ task("lz:messenger:send", "Send a cross-chain message")
       console.log(`  fee: ${hre.ethers.utils.formatEther(fee.nativeFee)} ETH`);
       console.log(`  Block: ${receipt.blockNumber}`);
       console.log(`  Gas Used: ${receipt.gasUsed.toString()}`);
-
-      return {
-        txHash: tx.hash,
-        blockNumber: receipt.blockNumber,
-        gasUsed: receipt.gasUsed.toString(),
-      };
     } catch (error: any) {
       console.log("error", error.toString());
       throw error;
@@ -202,10 +184,11 @@ task("lz:messenger:send", "Send a cross-chain message")
 **Usage:**
 
 ```bash
-# Send message from Ethereum Sepolia to Arbitrum Sepolia
-pnpm hardhat lz:messenger:send --dst-eid 40231 --message "Hello from Base!" --network ethereum-sepolia
+# Send a message from Ethereum Sepolia ----> Arbitrum Sepolia
+pnpm hardhat lz:messenger:send --dst-eid 40231 --message "Hello from Ethereum!" --network ethereum-sepolia
 
-pnpm hardhat lz:messenger:send --dst-eid 40231 --message "Hello from Base!" --network ethereum-sepolia
+# send a message from Abritrum Sepolia ----> Ethereum Sepolia
+pnpm hardhat lz:messenger:send --dst-eid 40161 --message "Hello from Arbitrum!" --network arbitrum-sepolia
 ```
 
 ## Key Takeaways
@@ -214,8 +197,6 @@ pnpm hardhat lz:messenger:send --dst-eid 40231 --message "Hello from Base!" --ne
 - Use helper functions to reduce boilerplate and improve consistency
 - Always include proper error handling and user feedback
 - Follow naming conventions for discoverability
-- Return structured data for programmatic use
-- Provide tracking links for cross-chain operations
 
 ## Next Steps
 
