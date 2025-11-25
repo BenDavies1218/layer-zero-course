@@ -1,4 +1,4 @@
-# Lesson 03 — ABA Messaging Pattern (Ping-Pong)
+# Lesson 04 — ABA Messaging Pattern (Ping-Pong)
 
 In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, where a message from Chain A triggers a response from Chain B that comes back to Chain A. This is commonly known as the "ping-pong" pattern and is essential for request-response flows in cross-chain applications.
 
@@ -10,7 +10,7 @@ In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, w
 - Receives messages and automatically responds with "pong"
 - Tracks ping/pong counts and message history
 - Demonstrates nested cross-chain messaging
-- Handles automatic response logic in `_lzReceive()`
+- How to handles automatic response logic in `_lzReceive()`
 
 ## Understanding the ABA Pattern
 
@@ -25,7 +25,7 @@ In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, w
 2. **Chain B receives in `_lzReceive()`**
    - OApp B processes "ping" message
    - OApp B automatically sends "pong" back to Chain A
-   - This is a **nested message** - receiving triggers sending
+   - This is a **nested message** - receiving this message needs to triggers sending one back
 
 3. **Chain A receives "pong"**
    - OApp A processes the response
@@ -48,7 +48,7 @@ The ABA pattern requires:
 1. **Message Type Identification**: Distinguish between "ping" and "pong" messages
 2. **Conditional Response Logic**: Only respond to "ping", not to "pong" (avoid infinite loops!)
 3. **Gas Pre-Allocation**: Include pong options in ping payload and allocate gas upfront for round trip
-4. **Reentrancy Safety**: Calling `_lzSend()` from within `_lzReceive()` requires care
+4. **Reentrancy Safety**: Calling `_lzSend()` from within `_lzReceive()` or updating chain state requires care! (Checks, Effects, and Interactions)
 
 ### ABA Gas Planning
 
@@ -62,7 +62,7 @@ For A → B → A messaging, the sender pays for the complete round trip in a si
 
 ## Building the PingPong Contract
 
-### Step 1: Create Contract File and Imports
+### Step 1: Create Contract
 
 Create `contracts/PingPong.sol`
 
@@ -124,10 +124,10 @@ Initialize the contract with LayerZero endpoint:
 
 ### Step 5: Implement Ping Function
 
-Add the main ping function:
+Add the main ping function exact same as the simpleMessenger contract:
 
 ```javascript
-    function ping(
+    function send(
         uint32 _dstEid,                  // Destination chain endpoint ID
         bytes calldata _sendOptions,     // Execution options for ping message
         bytes calldata _returnOptions    // Execution options for automatic pong response
@@ -159,7 +159,7 @@ Add the main ping function:
 Add fee estimation for round trip:
 
 ```javascript
-    function quotePingPong(
+    function quoteSend(
         uint32 _dstEid,                  // Destination endpoint ID
         bytes calldata _sendOptions,     // Execution options for send _lzSend call
         bytes calldata _returnOptions    // Execution options for return _lzSend call
@@ -181,12 +181,6 @@ Add fee estimation for round trip:
         totalFee = sendFee.nativeFee + returnFee.nativeFee;
     }
 ```
-
-**Why two quotes:**
-
-- First quote: cost of pong message (B → A)
-- Second quote: cost of ping message (A → B)
-- Total fee covers complete round trip
 
 ### Step 7: Implement \_lzReceive
 
@@ -267,46 +261,6 @@ Add withdrawal and receive functions:
 - `withdraw()`: Remove any accidentally sent funds
 - `receive()`: Accept refunds from LayerZero protocol
 
-## Key Implementation Details
-
-### 1. Encoding Return Options in Send
-
-```javascript
-// Ping payload includes pong options
-bytes memory payload = abi.encode(MessageType.PING, pingsSent, _returnOptions);
-```
-
-### 2. Decoding in \_lzReceive
-
-```javascript
-(MessageType messageType, uint256 messageId, bytes memory returnOptions) = abi.decode(_payload,(MessageType, uint256, bytes));
-```
-
-### 3. Using Pre-Allocated Gas
-
-```javascript
-// msg.value contains the native fee allocated by the sender
-_lzSend(
-  _origin.srcEid,
-  pongPayload,
-  options,
-  MessagingFee(msg.value, 0),
-  payable(address(this)),
-);
-```
-
-The pong uses gas that was allocated in the original ping transaction via `lzReceiveOption`.
-
-### 4. Preventing Infinite Loops
-
-```javascript
-if (messageType == MessageType.PING) {
-  // Send PONG
-} else if (messageType == MessageType.PONG) {
-  // Just record, DON'T respond!
-}
-```
-
 ## Compile and Deploy
 
 ### Step 1: Compile
@@ -315,432 +269,42 @@ if (messageType == MessageType.PING) {
 pnpm compile
 ```
 
-### Step 2: Create Deploy Script
+### Step 1: Deploy Contracts
 
-Create `deploy/PingPong.ts`:
-
-```typescript
-import assert from "assert";
-import { type DeployFunction } from "hardhat-deploy/types";
-
-const contractName = "PingPong";
-
-const deploy: DeployFunction = async (hre) => {
-  const { getNamedAccounts, deployments } = hre;
-  const { deploy } = deployments;
-  const { deployer } = await getNamedAccounts();
-
-  assert(deployer, "Missing named deployer account");
-
-  console.log(`Network: ${hre.network.name}`);
-  console.log(`Deployer: ${deployer}`);
-
-  const endpointV2Deployment = await hre.deployments.get("EndpointV2");
-
-  const { address } = await deploy(contractName, {
-    from: deployer,
-    args: [endpointV2Deployment.address, deployer],
-    log: true,
-    skipIfAlreadyDeployed: false,
-  });
-
-  console.log(
-    `Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`,
-  );
-};
-
-deploy.tags = [contractName];
-
-export default deploy;
-```
-
-### Step 3: Deploy to Two Chains
+Run the deployment command:
 
 ```bash
-# Deploy using LayerZero deployment
-pnpm hardhat lz:deploy --tags PingPong
+pnpm deploy:contracts
 ```
 
-Select at least two networks (e.g., Base Sepolia and Arbitrum Sepolia).
-
-### Step 4: Update LayerZero Config
-
-Update `layerzero.config.ts` to include PingPong contracts:
-
-```typescript
-const baseContract: OmniPointHardhat = {
-  eid: EndpointId.BASESEP_V2_TESTNET,
-  contractName: "PingPong",
-};
-
-const arbitrumContract: OmniPointHardhat = {
-  eid: EndpointId.ARBSEP_V2_TESTNET,
-  contractName: "PingPong",
-};
-
-// Use higher gas for ABA pattern
-const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
-  {
-    msgType: 1,
-    optionType: ExecutorOptionType.LZ_RECEIVE,
-    gas: 250000, // Higher gas for nested messaging
-    value: 0,
-  },
-];
-
-const pathways: TwoWayConfig[] = [
-  [
-    baseContract,
-    arbitrumContract,
-    [["LayerZero Labs"], []],
-    [1, 1],
-    [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS],
-  ],
-];
-```
-
-### Step 5: Wire Connections
+**Run verification:**
 
 ```bash
-pnpm hardhat lz:oapp:wire --oapp-config layerzero.config.ts
+# For Arbitrum Sepolia deployment
+pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/PingPong.sol:PingPong 0x6EDCE65403992e310A62460808c4b910D972f10f
+
+# For Ethereum Sepolia deployment
+pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/PingPong.sol:PingPong 0x6EDCE65403992e310A62460808c4b910D972f10f
 ```
 
-## Testing the ABA Pattern
-
-### Step 1: Build Options and Quote Fee
+**Run the interactive wiring tool:**
 
 ```bash
-npx hardhat console --network base-sepolia
+pnpm wire
 ```
 
-```javascript
-const { Options } = require("@layerzerolabs/lz-v2-utilities");
-const PingPong = await ethers.getContractFactory("PingPong");
-const pingPong = PingPong.attach("0xYourBaseSepoliaAddress");
-
-const arbSepoliaEid = 40231;
-const baseSepoliaEid = 40245;
-
-// 1. Build pong options (B → A)
-const returnOptions = Options.newOptions()
-  .addExecutorLzReceiveOption(100000, 0)
-  .toHex();
-
-// 2. Quote pong cost
-const pongFee = await pingPong.quotePong(baseSepoliaEid, returnOptions, false);
-console.log(`Pong fee: ${ethers.utils.formatEther(pongFee.nativeFee)} ETH`);
-
-// 3. Build ping options with pong gas pre-allocated
-const sendOptions = Options.newOptions()
-  .addExecutorLzReceiveOption(
-    150000, // Gas for executing _lzReceive + sending pong
-    pongFee.nativeFee, // Native fee for pong delivery
-  )
-  .toHex();
-
-// 4. Quote total ping-pong round trip
-const totalFee = await pingPong.quotePingPong(
-  arbSepoliaEid,
-  sendOptions,
-  returnOptions,
-);
-console.log(`Total round trip fee: ${ethers.utils.formatEther(totalFee)} ETH`);
-```
-
-### Step 2: Send Ping with Pre-Allocated Gas
-
-```javascript
-// Send ping with complete round trip payment
-const tx = await pingPong.ping(arbSepoliaEid, sendOptions, returnOptions, {
-  value: totalFee,
-});
-
-console.log(`Ping sent! Tx: ${tx.hash}`);
-await tx.wait();
-console.log("✅ Ping sent with gas pre-allocated for automatic pong!");
-```
-
-### Step 3: Track the Messages
-
-Go to [LayerZero Scan](https://layerzeroscan.com) and enter your transaction hash.
-
-You should see:
-
-1. **First message**: Ping from Base Sepolia to Arbitrum (~2-5 minutes)
-2. **Second message**: Automatic pong from Arbitrum back to Base Sepolia (~2-5 minutes)
-
-Total round-trip: ~5-10 minutes
-
-### Step 4: Verify on Both Chains
-
-**On Base Sepolia** (where you sent ping):
-
-```javascript
-const pings = await pingPong.pingsSent();
-const pongs = await pingPong.pongsReceived();
-
-console.log(`Pings sent: ${pings}`); // Should be 1
-console.log(`Pongs received: ${pongs}`); // Should be 1 (after pong arrives)
-```
-
-**On Arbitrum** (destination):
-
-```javascript
-const pings = await pingPong.pingsReceived();
-const pongs = await pingPong.pongsSent();
-
-console.log(`Pings received: ${pings}`); // Should be 1
-console.log(`Pongs sent: ${pongs}`); // Should be 1
-```
-
-### Understanding ABA Gas Requirements
-
-For a complete A → B → A flow, you need to pay for:
-
-1. **A → B delivery**: Message delivery from Chain A to Chain B
-2. **B → A gas allocation**: Gas for Chain B to execute `_lzReceive()` AND send the return message
-3. **B → A delivery**: Message delivery from Chain B back to Chain A
-
-**Key Insight**: The sender pays for the entire round trip upfront by:
-
-- Encoding pong options in the ping payload
-- Using `lzReceiveOption` with native value to pre-allocate gas for the pong message
-- Calling `quotePingPong()` to calculate the total cost before sending
-
-**Gas Calculation Example:**
-
-```javascript
-const { Options } = require("@layerzerolabs/lz-v2-utilities");
-
-// 1. Build pong options (B → A)
-const returnOptions = Options.newOptions()
-  .addExecutorLzReceiveOption(100000, 0)
-  .toHex();
-
-// 2. Quote the pong message cost
-const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
-
-// 3. Build ping options with pong gas pre-allocated
-const sendOptions = Options.newOptions()
-  .addExecutorLzReceiveOption(
-    150000, // Gas for executing _lzReceive + sending pong
-    pongFee.nativeFee, // Native fee for pong message delivery
-  )
-  .toHex();
-
-// 4. Quote total round trip and send
-const totalFee = await pingPong.quotePingPong(
-  arbSepoliaEid,
-  sendOptions,
-  returnOptions,
-);
-
-await pingPong.ping(arbSepoliaEid, sendOptions, returnOptions, {
-  value: totalFee,
-});
-```
-
-## Common Issues and Solutions
-
-### Issue 1: "Insufficient fee for pong"
-
-**Problem**: Pong execution fails due to insufficient gas allocation in ping.
-
-**Solution**: Increase the native value in `lzReceiveOption`:
-
-```javascript
-// Increase native fee for pong
-const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
-
-const sendOptions = Options.newOptions()
-  .addExecutorLzReceiveOption(
-    200000, // Increase execution gas
-    pongFee.nativeFee, // Ensure sufficient native fee
-  )
-  .toHex();
-```
-
-### Issue 2: Pong never arrives
-
-**Problem**: Not enough gas allocated in ping options for destination execution.
-
-**Solution**: Calculate proper gas requirements and use `quotePingPong()`:
-
-```javascript
-// Always quote the full round trip
-const totalFee = await pingPong.quotePingPong(
-  arbSepoliaEid,
-  sendOptions,
-  returnOptions,
-);
-
-// Send with quoted fee
-await pingPong.ping(arbSepoliaEid, sendOptions, returnOptions, {
-  value: totalFee,
-});
-```
-
-### Issue 3: Infinite loop
-
-**Problem**: Responding to both PING and PONG creates infinite messages.
-
-**Solution**: Only respond to PING messages:
-
-```javascript
-if (messageType == MessageType.PING) {
-  // Send PONG
-} else if (messageType == MessageType.PONG) {
-  // DO NOT send anything - just record!
-}
-```
-
-### Issue 4: Transaction reverts with "Insufficient msg.value"
-
-**Problem**: Not sending enough value to cover ping delivery + pong allocation.
-
-**Solution**: Always use the `quotePingPong()` result:
-
-```javascript
-const totalFee = await pingPong.quotePingPong(dstEid, sendOpts, returnOpts);
-await pingPong.ping(dstEid, sendOpts, returnOpts, { value: totalFee });
-```
-
-## Security Considerations
-
-### 1. Reentrancy
-
-Calling `_lzSend()` from within `_lzReceive()` is generally safe because:
-
-- State is updated before the call
-- LayerZero Endpoint is trusted
-- No external untrusted calls are made
-
-However, always follow checks-effects-interactions:
-
-```javascript
-// ✅ GOOD
-pingsReceived++;  // Update state first
-emit PingReceived(_origin.srcEid, messageId);
-_lzSend(...);  // External call last
-
-// ❌ BAD
-_lzSend(...);  // External call first
-pingsReceived++;  // State update after
-```
-
-### 2. Gas Validation
-
-Always validate that msg.value in `_lzReceive()` is sufficient:
-
-```javascript
-// Calculate required fee
-MessagingFee memory fee = _quote(_origin.srcEid, payload, options, false);
-
-// Verify pre-allocated gas is sufficient
-require(msg.value >= fee.nativeFee, "Insufficient gas for pong");
-```
-
-### 3. Message Type Validation
-
-Critical: Prevent infinite loops by validating message types:
-
-```javascript
-if (messageType == MessageType.PING) {
-  // Only respond to PING, never to PONG
-  _sendPong(_origin.srcEid, returnOptions);
-} else if (messageType == MessageType.PONG) {
-  // Just record, never respond to prevent loop
-  pongsReceived++;
-}
-```
-
-### 4. Options Validation
-
-Validate return options decoded from payload to prevent malicious gas allocation:
-
-```javascript
-// Decode return options from payload
-(, , bytes memory returnOptions) = abi.decode(_payload, (MessageType, uint256, bytes));
-
-// Optional: Validate options are within acceptable bounds
-// This prevents sender from encoding malicious or excessive gas requirements
-```
-
-## Monitoring and Debugging
-
-### Track Message Counts
-
-```javascript
-// On source chain (Sepolia)
-const pingsSent = await pingPong.pingsSent();
-const pongsReceived = await pingPong.pongsReceived();
-console.log(`Pings sent: ${pingsSent}`);
-console.log(`Pongs received: ${pongsReceived}`);
-
-// On destination chain (Arbitrum)
-const pingsReceived = await pingPong.pingsReceived();
-const pongsSent = await pingPong.pongsSent();
-console.log(`Pings received: ${pingsReceived}`);
-console.log(`Pongs sent: ${pongsSent}`);
-```
-
-### Monitor Events
-
-```javascript
-// Listen for ping events
-pingPong.on("PingSent", (dstEid, pingId) => {
-  console.log(`Ping ${pingId} sent to ${dstEid}`);
-});
-
-pingPong.on("PongReceived", (srcEid, pongId) => {
-  console.log(`Pong ${pongId} received from ${srcEid}`);
-});
-```
-
-### Debug Gas Issues
-
-```javascript
-// Quote individual components
-const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
-console.log(
-  `Pong delivery fee: ${ethers.utils.formatEther(pongFee.nativeFee)}`,
-);
-
-const totalFee = await pingPong.quotePingPong(
-  arbSepoliaEid,
-  sendOptions,
-  returnOptions,
-);
-console.log(`Total round trip: ${ethers.utils.formatEther(totalFee)}`);
-```
-
-## Advanced
-
-Try implementing these enhancements:
-
-1. **Timed Responses**: Add timestamps to track round-trip time
-2. **Multi-Hop**: A → B → C → A pattern
-3. **Conditional Return**: Only respond if certain conditions are met
-4. **Data Requests**: Send data in send, get calculations in return
-5. **Rate Limiting**: Limit returns per time period to prevent spam
+### PingPong HardHat Task
 
 ## Key Takeaways
 
-✅ ABA pattern enables request-response flows across chains
-
-✅ Distinguish message types to prevent infinite loops
-
-✅ Encode pong options in ping payload for automatic responses
-
-✅ Use `lzReceiveOption` with native value to pre-allocate pong gas
-
-✅ Sender pays for entire round trip upfront - no contract funding needed
-
-✅ Always quote with `quotePingPong()` to calculate total costs
-
-✅ Follow checks-effects-interactions pattern for safety
-
-✅ Validate message types and gas allocations in `_lzReceive()`
+- ABA pattern enables request-response flows across chains
+- Distinguish message types to prevent infinite loops
+- Encode pong options in ping payload for automatic responses
+- Use `lzReceiveOption` with native value to pre-allocate pong gas
+- Sender pays for entire round trip upfront - no contract funding needed
+- Always quote with `quoteSend()` to calculate total costs
+- Follow checks-effects-interactions pattern for safety
+- Validate message types and gas allocations in `_lzReceive()`
 
 ## Next Steps
 
