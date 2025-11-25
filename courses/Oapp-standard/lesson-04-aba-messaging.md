@@ -19,12 +19,10 @@ In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, w
 ### How It Works
 
 1. **User calls `ping()` on Chain A**
-
    - OApp A sends "ping" message to Chain B
    - Message travels through LayerZero protocol
 
 2. **Chain B receives in `_lzReceive()`**
-
    - OApp B processes "ping" message
    - OApp B automatically sends "pong" back to Chain A
    - This is a **nested message** - receiving triggers sending
@@ -33,32 +31,13 @@ In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, w
    - OApp A processes the response
    - Completes the round-trip communication
 
-### Real-World Use Cases
-
-The ABA pattern enables powerful request-response flows across chains. Here are practical applications:
-
-#### 1. Multi-Chain Governance
-
-- **Case**: Main DAO on Ethereum requests vote tallies from satellite chains
-
-#### 2. Liquidity Availability Checks
-
-- **Case**: Bridge asks destination chain if sufficient liquidity exists
-
-#### 3. Remote Authentication
-
-- **Case**: App on Base requests authentication on a remote chain
-
-#### 5. Acknowledgment & Confirmation
-
-- **Case**: Managing State on multiply Changes
-
 ## Prerequisites
 
-Before starting:
+Before starting you should have Completed:
 
-- Complete [Lesson-01-basics](./lesson-01-basics.md)
-- Complete [Lesson-02-simple-Oapp](./lesson-02-simple-oapp.md)
+- [Lesson 1 Oapp basics](./lesson-01-basics.md)
+- [Lesson 2 simple Oapp](./lesson-02-simple-oapp.md)
+- [Lesson 3 Hardhat Tasks](./lesson-03-hardhat-tasks.md)
 
 ## Contract Architecture
 
@@ -312,7 +291,7 @@ _lzSend(
   pongPayload,
   options,
   MessagingFee(msg.value, 0),
-  payable(address(this))
+  payable(address(this)),
 );
 ```
 
@@ -341,39 +320,38 @@ pnpm compile
 Create `deploy/PingPong.ts`:
 
 ```typescript
-import assert from 'assert'
-import { type DeployFunction } from 'hardhat-deploy/types'
+import assert from "assert";
+import { type DeployFunction } from "hardhat-deploy/types";
 
-const contractName = 'PingPong'
+const contractName = "PingPong";
 
 const deploy: DeployFunction = async (hre) => {
-    const { getNamedAccounts, deployments } = hre
-    const { deploy } = deployments
-    const { deployer } = await getNamedAccounts()
+  const { getNamedAccounts, deployments } = hre;
+  const { deploy } = deployments;
+  const { deployer } = await getNamedAccounts();
 
-    assert(deployer, 'Missing named deployer account')
+  assert(deployer, "Missing named deployer account");
 
-    console.log(`Network: ${hre.network.name}`)
-    console.log(`Deployer: ${deployer}`)
+  console.log(`Network: ${hre.network.name}`);
+  console.log(`Deployer: ${deployer}`);
 
-    const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+  const endpointV2Deployment = await hre.deployments.get("EndpointV2");
 
-    const { address } = await deploy(contractName, {
-        from: deployer,
-        args: [
-            endpointV2Deployment.address,
-            deployer,
-        ],
-        log: true,
-        skipIfAlreadyDeployed: false,
-    })
+  const { address } = await deploy(contractName, {
+    from: deployer,
+    args: [endpointV2Deployment.address, deployer],
+    log: true,
+    skipIfAlreadyDeployed: false,
+  });
 
-    console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
-}
+  console.log(
+    `Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`,
+  );
+};
 
-deploy.tags = [contractName]
+deploy.tags = [contractName];
 
-export default deploy
+export default deploy;
 ```
 
 ### Step 3: Deploy to Two Chains
@@ -391,34 +369,34 @@ Update `layerzero.config.ts` to include PingPong contracts:
 
 ```typescript
 const baseContract: OmniPointHardhat = {
-    eid: EndpointId.BASESEP_V2_TESTNET,
-    contractName: 'PingPong',
-}
+  eid: EndpointId.BASESEP_V2_TESTNET,
+  contractName: "PingPong",
+};
 
 const arbitrumContract: OmniPointHardhat = {
-    eid: EndpointId.ARBSEP_V2_TESTNET,
-    contractName: 'PingPong',
-}
+  eid: EndpointId.ARBSEP_V2_TESTNET,
+  contractName: "PingPong",
+};
 
 // Use higher gas for ABA pattern
 const EVM_ENFORCED_OPTIONS: OAppEnforcedOption[] = [
-    {
-        msgType: 1,
-        optionType: ExecutorOptionType.LZ_RECEIVE,
-        gas: 250000, // Higher gas for nested messaging
-        value: 0,
-    },
-]
+  {
+    msgType: 1,
+    optionType: ExecutorOptionType.LZ_RECEIVE,
+    gas: 250000, // Higher gas for nested messaging
+    value: 0,
+  },
+];
 
 const pathways: TwoWayConfig[] = [
-    [
-        baseContract,
-        arbitrumContract,
-        [['LayerZero Labs'], []],
-        [1, 1],
-        [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS],
-    ],
-]
+  [
+    baseContract,
+    arbitrumContract,
+    [["LayerZero Labs"], []],
+    [1, 1],
+    [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS],
+  ],
+];
 ```
 
 ### Step 5: Wire Connections
@@ -456,7 +434,7 @@ console.log(`Pong fee: ${ethers.utils.formatEther(pongFee.nativeFee)} ETH`);
 const sendOptions = Options.newOptions()
   .addExecutorLzReceiveOption(
     150000, // Gas for executing _lzReceive + sending pong
-    pongFee.nativeFee // Native fee for pong delivery
+    pongFee.nativeFee, // Native fee for pong delivery
   )
   .toHex();
 
@@ -464,7 +442,7 @@ const sendOptions = Options.newOptions()
 const totalFee = await pingPong.quotePingPong(
   arbSepoliaEid,
   sendOptions,
-  returnOptions
+  returnOptions,
 );
 console.log(`Total round trip fee: ${ethers.utils.formatEther(totalFee)} ETH`);
 ```
@@ -546,7 +524,7 @@ const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
 const sendOptions = Options.newOptions()
   .addExecutorLzReceiveOption(
     150000, // Gas for executing _lzReceive + sending pong
-    pongFee.nativeFee // Native fee for pong message delivery
+    pongFee.nativeFee, // Native fee for pong message delivery
   )
   .toHex();
 
@@ -554,7 +532,7 @@ const sendOptions = Options.newOptions()
 const totalFee = await pingPong.quotePingPong(
   arbSepoliaEid,
   sendOptions,
-  returnOptions
+  returnOptions,
 );
 
 await pingPong.ping(arbSepoliaEid, sendOptions, returnOptions, {
@@ -577,7 +555,7 @@ const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
 const sendOptions = Options.newOptions()
   .addExecutorLzReceiveOption(
     200000, // Increase execution gas
-    pongFee.nativeFee // Ensure sufficient native fee
+    pongFee.nativeFee, // Ensure sufficient native fee
   )
   .toHex();
 ```
@@ -593,7 +571,7 @@ const sendOptions = Options.newOptions()
 const totalFee = await pingPong.quotePingPong(
   arbSepoliaEid,
   sendOptions,
-  returnOptions
+  returnOptions,
 );
 
 // Send with quoted fee
@@ -725,13 +703,13 @@ pingPong.on("PongReceived", (srcEid, pongId) => {
 // Quote individual components
 const pongFee = await pingPong.quotePong(sepoliaEid, returnOptions, false);
 console.log(
-  `Pong delivery fee: ${ethers.utils.formatEther(pongFee.nativeFee)}`
+  `Pong delivery fee: ${ethers.utils.formatEther(pongFee.nativeFee)}`,
 );
 
 const totalFee = await pingPong.quotePingPong(
   arbSepoliaEid,
   sendOptions,
-  returnOptions
+  returnOptions,
 );
 console.log(`Total round trip: ${ethers.utils.formatEther(totalFee)}`);
 ```

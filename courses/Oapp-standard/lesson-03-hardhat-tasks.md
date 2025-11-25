@@ -5,14 +5,14 @@ In this lesson, you'll learn how to create Hardhat tasks to interact with your d
 ## What You'll Learn
 
 - How Hardhat tasks work and why they're useful
-- Creating your first custom task to work with the simpleMessenger contract from lesson 2.
+- Creating your first task to work with the simpleMessenger contract from lesson 2.
 
 ## Prerequisites
 
 Before starting, ensure you have:
 
 - Completed Lesson 02 Simple Oapp
-- A deployed and wired your OApp contract
+- Have a deployed and wired your OApp contract
 
 ## Why Use Hardhat Tasks?
 
@@ -22,7 +22,7 @@ Hardhat tasks offer several advantages over manual console interaction:
 2. **CLI Interface** - Run from command line with parameters
 3. **Validation** - Built-in parameter parsing and validation
 4. **Automation** - Easy to integrate into scripts and CI/CD
-5. **Documentation** - Self-documenting with descriptions and help text
+5. **Documentation** - Allows you to document what is happening more easily
 
 ## Task Basics
 
@@ -36,11 +36,11 @@ Hardhat provides several built-in parameter types that can be passed through the
 - `types.boolean` - Boolean values
 - `types.json` - JSON objects
 
-If you would rather hardcode values such as contract name or address in your task then your more than welcome.
+If you would rather hardcode values such as contract name or address in your task then your more than welcome but you will need to change them each time you call the task.
 
 ### Task Structure
 
-Every Hardhat I've written starts with this boiler plate code
+Every Hardhat task I've written starts with this boiler plate code
 
 ```typescript
 import { task, types } from "hardhat/config";
@@ -125,7 +125,7 @@ import { Options } from "@layerzerolabs/lz-v2-utilities";
 
 import { getDeployedContract } from "./helpers/taskHelpers";
 
-task("lz:messenger:send", "Send a cross-chain message")
+task("lz:oapp:send", "Send a cross-chain message")
   .addParam("dstEid", "Destination endpoint ID", undefined, types.int)
   .addParam("message", "Message to send", undefined, types.string)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
@@ -185,10 +185,10 @@ task("lz:messenger:send", "Send a cross-chain message")
 
 ```bash
 # Send a message from Ethereum Sepolia ----> Arbitrum Sepolia
-pnpm hardhat lz:messenger:send --dst-eid 40231 --message "Hello from Ethereum!" --network ethereum-sepolia
+pnpm hardhat lz:oapp:send --dst-eid 40231 --message "Hello from Ethereum!" --network ethereum-sepolia
 
 # send a message from Abritrum Sepolia ----> Ethereum Sepolia
-pnpm hardhat lz:messenger:send --dst-eid 40161 --message "Hello from Arbitrum!" --network arbitrum-sepolia
+pnpm hardhat lz:oapp:send --dst-eid 40161 --message "Hello from Arbitrum!" --network arbitrum-sepolia
 ```
 
 ## Key Takeaways
@@ -200,11 +200,13 @@ pnpm hardhat lz:messenger:send --dst-eid 40161 --message "Hello from Arbitrum!" 
 
 ## Next Steps
 
-In **Lesson 04**, we'll explore the ABA (Ping-Pong) messaging pattern, where a message to Chain B triggers an automatic response back to Chain A. This is useful for:
+In the next lesson, we'll explore the ABA (Ping-Pong) messaging pattern, where a message to Chain B triggers an automatic response back to Chain A. This is useful for:
 
 - Request-response workflows
 - Cross-chain confirmations
 - Automated cross-chain interactions
+
+[Lesson 4 - ABA Message Pattern](./lesson-04-aba-messaging.md)
 
 ## Resources
 
