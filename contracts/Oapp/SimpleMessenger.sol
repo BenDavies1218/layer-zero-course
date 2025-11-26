@@ -6,7 +6,6 @@ import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OA
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SimpleMessenger is OApp, OAppOptionsType3 {
-
     string public lastMessage; // Store the last received message
     uint256 public messagesSent; // Track total messages sent
     uint256 public messagesReceived; // Track total messages received
@@ -22,12 +21,26 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
         address _owner // Owner of the contract
     ) OApp(_endpoint, _owner) Ownable(_owner) {}
 
-    function sendMessage(
+    function quote(
+        uint32 _dstEid, // Destination Endpoint ID
+        string calldata _message, // Message to send
+        bytes calldata _options, // Execution options (gas limit, etc.)
+        bool _payInLzToken // Is it being payed in LZO Token
+    ) external view returns (MessagingFee memory fee) {
+        // encode the message
+        bytes memory _payload = abi.encode(_message);
+        // Create the options object
+        bytes memory options = combineOptions(_dstEid, SEND, _options);
+
+        // call the quote method of the Oapp _quote method
+        fee = _quote(_dstEid, _payload, options, _payInLzToken);
+    }
+
+    function send(
         uint32 _dstEid, // Destination endpoint ID
         string calldata _message, // Message to send
         bytes calldata _options // Execution options (gas limit, etc.)
-        ) external payable {
-
+    ) external payable {
         // Encode the message
         bytes memory _payload = abi.encode(_message);
 
@@ -39,7 +52,7 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
             _dstEid, // Destination endpoint ID
             _payload, // Encoded message
             options, // Execution options
-            MessagingFee(msg.value, 0),  // Fee in native gas token
+            MessagingFee(msg.value, 0), // Fee in native gas token
             payable(msg.sender) // Refund address
         );
 
@@ -48,21 +61,6 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
 
         // emit the messageSent to the destination chain
         emit MessageSent(_dstEid, _message, msg.value);
-    }
-
-    function quote(
-        uint32 _dstEid, // Destination Endpoint ID
-        string calldata _message, // Message to send
-        bytes calldata _options, // Execution options (gas limit, etc.)
-        bool _payInLzToken // Is it being payed in LZO Token
-        ) external view returns (MessagingFee memory fee) {
-        // encode the message
-        bytes memory _payload = abi.encode(_message);
-        // Create the options object
-        bytes memory options = combineOptions(_dstEid, SEND, _options);
-
-        // call the quote method of the Oapp _quote method
-        fee = _quote(_dstEid, _payload, options, _payInLzToken);
     }
 
     function _lzReceive(
@@ -87,5 +85,4 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
         // emit the messageReceive to the origin chain
         emit MessageReceived(message, _origin.srcEid, _origin.sender);
     }
-
 }

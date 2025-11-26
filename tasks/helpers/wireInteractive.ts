@@ -173,11 +173,8 @@ export default task('lz:oapp:wire:interactive', 'Interactive CLI for configuring
                     wire.on('close', (code) => {
                         if (code === 0) {
                             console.log('\n✅ OApp wiring complete!\n')
-                            console.log('🎉 Your OApp is now configured and ready to send cross-chain messages!\n')
-                            console.log('📝 Next steps:')
-                            console.log('   - Test sending a message: pnpm hardhat lz:oapp:send')
                             console.log(
-                                `   - Check config: pnpm hardhat lz:oapp:config:get --oapp-config ${configFilePath}\n`
+                                '🎉 Your OApp is now configured and ready to send / receive cross-chain messages!\n'
                             )
                             resolve()
                         } else {

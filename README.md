@@ -90,7 +90,7 @@ cp .env.example .env
 ## Step 3: Run hardhart Compile
 
 ```bash
-npx hardhat compile
+pnpm compile
 ```
 
 ## Where from here?

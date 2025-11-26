@@ -65,7 +65,28 @@ contract SimpleMessenger is OApp, OAppOptionsType3 {
     ) OApp(_endpoint, _owner) Ownable(_owner) {}
 ```
 
-### Step 4: Send function
+### Step 4: Quoting Fees function
+
+Always provide a quote function so users can check costs before sending:
+
+```typescript
+function quote(
+    uint32 _dstEid, // Destination Endpoint ID
+    string calldata _message, // Message to send
+    bytes calldata _options, // Execution options (gas limit, etc.)
+    bool _payInLzToken // Is it being payed in LZO Token
+) external view returns (MessagingFee memory fee) {
+    // encode the message
+    bytes memory _payload = abi.encode(_message);
+    // Create the options object
+    bytes memory options = combineOptions(_dstEid, SEND, _options);
+
+    // call the quote method of the Oapp _quote method
+    fee = _quote(_dstEid, _payload, options, _payInLzToken);
+}
+```
+
+### Step 5: Send function
 
 The send function needs to:
 
@@ -74,7 +95,7 @@ The send function needs to:
 3. Call `_lzSend()` with proper parameters
 
 ```typescript
-function sendMessage(
+function send(
   uint32 _dstEid, // Destination endpoint ID
   string calldata _message, // Message to send
   bytes calldata _options // Execution options (gas limit, etc.)
@@ -103,27 +124,6 @@ function sendMessage(
 }
 ```
 
-### Step 5: Quoting Fees function
-
-Always provide a quote function so users can check costs before sending:
-
-```typescript
-function quoteSend(
-    uint32 _dstEid, // Destination Endpoint ID
-    string calldata _message, // Message to send
-    bytes calldata _options, // Execution options (gas limit, etc.)
-    bool _payInLzToken // Is it being payed in LZO Token
-) external view returns (MessagingFee memory fee) {
-    // encode the message
-    bytes memory _payload = abi.encode(_message);
-    // Create the options object
-    bytes memory options = combineOptions(_dstEid, SEND, _options);
-
-    // call the quote method of the Oapp _quote method
-    fee = _quote(_dstEid, _payload, options, _payInLzToken);
-}
-```
-
 ### Step 6: Internal Receiving Messages function
 
 Override `_lzReceive()` to handle incoming messages:
@@ -131,10 +131,10 @@ Override `_lzReceive()` to handle incoming messages:
 ```typescript
 function _lzReceive(
     Origin calldata _origin,
-    bytes32 _guid, // Message GUID (not used here in this example)
+    bytes32 _guid, // Message GUID
     bytes calldata _payload,
-    address _executor, // Executor address (not used here in this example)
-    bytes calldata _extraData // Extra data (not used here in this example)
+    address _executor, // Executor address
+    bytes calldata _extraData // Extra data
 ) internal override {
     // Decode the message
     string memory message = abi.decode(_payload, (string));
@@ -234,15 +234,17 @@ After deployment, verify your contracts on block explorers (Etherscan, Arbiscan,
 
 **Run verification:**
 
-```bash
-# For Arbitrum Sepolia deployment
-pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger 0x6EDCE65403992e310A62460808c4b910D972f10f
+For Arbitrum Sepolia verification
 
-# For Ethereum Sepolia deployment
-pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger 0x6EDCE65403992e310A62460808c4b910D972f10f
+```bash
+pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <YOUR_DEPLOYED_CONTRACT_ADDRESS>
 ```
 
-**Note:** The `--contract` flag specifies the exact contract path to avoid ambiguity. The EndpointV2 address (`0x6EDCE65403992e310A62460808c4b910D972f10f`) is the same for all testnets. This will change for mainnet deployment / solana deployments.
+For ethereum Sepolia verification
+
+```bash
+pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <YOUR_DEPLOYED_CONTRACT_ADDRESS>
+```
 
 **Example Output:**
 

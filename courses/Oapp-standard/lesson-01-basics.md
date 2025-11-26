@@ -53,7 +53,7 @@ Use cases:
 - Request-response patterns
 - Conditional workflows
 
-### Batch Send Pattern
+## Batch Send Pattern
 
 Send multiple messages to different chains in a single transaction.
 
@@ -78,27 +78,6 @@ As the contract owner, you control:
 - **Enforced Options**: Configuring gas limits and execution options
 - **Message Inspectors**: Security checks and message validation
 - **DVN Configuration**: Choosing which verifiers to trust
-
-### Recommended Practices
-
-**1. Transfer to a Multisig wallet**
-
-```typescript
-// Maintains control with distributed security
-address multisig = 0x1234...;
-oapp.transferOwnership(multisig);
-```
-
-**2. Maintain Flexibility**
-
-Retaining ownership allows you to:
-
-- Add new cross-chain pathways
-- Respond to chain-level disruptions
-- Update security configurations
-- Adjust gas settings for changing network conditions
-
-## Security Considerations
 
 ### Origin Validation
 
@@ -144,7 +123,7 @@ function _lzReceive(...) internal override {
 ### Gas Considerations
 
 - Always provide sufficient gas via `_options`
-- Always create `quoteSend()` to estimate costs
+- Always create `quote()` method to estimate costs
 - Account for variable gas prices on destination chains, add native drops where nessecary.
 - Set reasonable enforced options as safety nets, add more than one DVN for better securety (at the expense of gas).
 
