@@ -97,15 +97,15 @@ npx hardhat compile
 
 **Learn the fundamentals**
 
-Oapp Standard [Lesson 01 - LayerZero Basics](./courses/Oapp-standard/lesson-01-basics.md)
+[Lesson 01 - Oapp Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
-This course is designed to introduce you to the LayerZero protocol. It's a mix of technical and fun challenges designed to indroduce you to the basics of cross-chain messaging, no prerequisites are required.
+This course is designed to introduce you to the LayerZero protocol. It's a mix of technical and fun challenges designed to indroduce you to the basics of cross-chain messaging, no prerequisites required.
 
 ---
 
 **OFT Token Standard** (Coming Soon)
 
-OFT Standard [Lesson 01 - OFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
+[Lesson 01 - OFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
 This course is the next step towards building Omnichain applications. It's recommended you have completed at least the OApp standard lessons, but you're not required to. The OFT standard is technical and the challenges are designed on real use cases and how to implement production-ready solutions for Omnichain apps.
 
@@ -113,7 +113,7 @@ This course is the next step towards building Omnichain applications. It's recom
 
 **NOFT Standard** (Coming Soon)
 
-NOFT Standard [Lesson 01 - NOFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
+[Lesson 01 - NOFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
 This course is very similar to the OFT standard. It's recommended you have completed at least the OApp standard lessons, but you're not required to. The NOFT standard is technical and the challenges are designed on real use cases and how to implement production-ready solutions for Omnichain apps.
 
@@ -121,7 +121,7 @@ This course is very similar to the OFT standard. It's recommended you have compl
 
 **OVault Standard** (Coming Soon)
 
-OVault Standard [Lesson 01 - OVault Basics](./courses/Oapp-standard/lesson-01-basics.md)
+[Lesson 01 - OVault Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
 Building an Omnichain vault is the most challenging course here. You should have completed the OFT Standard or NOFT Standard at a minimum before starting this. The OVault standard is quite technical and requires a high level of understanding of the layerzero V2 protocol including: OFT Standard and ERC-4626 vault standard.
 

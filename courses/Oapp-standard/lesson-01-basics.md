@@ -35,11 +35,11 @@ The OApp standard lets your contract send and receive arbitrary messages across 
 
 ### Simple Send/Receive Pattern
 
-![LayerZero Message Flow](../../src/diagrams/layerzero-flow.svg)
+![LayerZero Message Flow](../../utils/SimpleCCM.png)
 
 **Step-by-Step Flow:**
 
-1. **User calls `sendString()` on Chain A**
+1. **User calls `send()` on Chain A**
    - OApp encodes message
    - Calls `_lzSend()` with destination EID and message
 
@@ -71,7 +71,7 @@ The OApp standard lets your contract send and receive arbitrary messages across 
 
 The ABA pattern enables nested messaging where a message from Chain A to Chain B triggers another message back to Chain A.
 
-![ABA Pattern](../../src/diagrams/aba-pattern.svg)
+![ABA Pattern](../../utils/PingPong.png)
 
 Use cases:
 
@@ -83,7 +83,7 @@ Use cases:
 
 Send multiple messages to different chains in a single transaction.
 
-![Batch Send Pattern](../../src/diagrams/batch-send-pattern.svg)
+![Batch Send Pattern](../../utils/MultiChain.png)
 
 Use cases:
 
