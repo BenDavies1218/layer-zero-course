@@ -228,7 +228,7 @@ Deployed contract: SimpleMessenger, network: ethereum-sepolia, address: 0xDEF456
 - `deployments/arbitrum-sepolia/SimpleMessenger.json` - Contract ABI, address, and deployment details
 - `deployments/ethereum-sepolia/SimpleMessenger.json` - Contract ABI, address, and deployment details
 
-### Step 2: Verify Contracts
+### Step 2: Verify Contracts (Optional but good practice)
 
 After deployment, verify your contracts on block explorers (Etherscan, Arbiscan, etc.) to make the source code publicly viewable.
 

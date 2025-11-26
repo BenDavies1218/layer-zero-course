@@ -3,7 +3,7 @@ import assert from 'assert'
 import { type DeployFunction } from 'hardhat-deploy/types'
 
 // UPDATE CONTRACT NAME HERE
-const contractName = 'SimpleMessenger'
+const contractName = 'PingPong'
 
 const deploy: DeployFunction = async (hre) => {
     const { getNamedAccounts, deployments } = hre
