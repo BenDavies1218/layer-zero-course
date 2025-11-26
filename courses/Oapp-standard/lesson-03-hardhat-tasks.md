@@ -5,14 +5,14 @@ In this lesson, you'll learn how to create Hardhat tasks to interact with your d
 ## What You'll Learn
 
 - How Hardhat tasks work and why they're useful
-- Creating your first task to work with the simpleMessenger contract from lesson 2.
+- Create a task to interacte with the simpleMessenger contract from lesson 2.
 
 ## Prerequisites
 
 Before starting, ensure you have:
 
 - Completed Lesson 02 Simple Oapp
-- Have a deployed and wired your OApp contract
+- Have a deployed and wired your OApp contracts
 
 ## Why Use Hardhat Tasks?
 
@@ -38,20 +38,37 @@ Hardhat provides several built-in parameter types that can be passed through the
 
 If you would rather hardcode values such as contract name or address in your task then your more than welcome but you will need to change them each time you call the task.
 
-### Task Structure
-
-Every Hardhat task I've written starts with this boiler plate code
-
 ```typescript
 import { task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+//        Name       Description
 task("task:name", "Description of what this task does")
+  // Required Parameter.                        Default Value  Param Type
   .addParam("paramName", "Parameter description", undefined, types.string)
+
+  // Optional Parameter.
+  .addOptionalParam(
+    "paramName",
+    "Parameter description",
+    undefined,
+    types.string,
+  )
+
+  // Function to set executed
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     // Task implementation
   });
 ```
+
+Built-in CLI flags (available to all tasks):
+
+- --network - Specifies which network to use
+- --show-stack-traces - Shows full stack traces on errors
+- --version - Shows Hardhat version
+- --help - Shows help for the task
+- --config - Custom config file path
+- --verbose - Enables verbose logging
 
 ## Step 1: Create a Simple Query Task
 
@@ -97,7 +114,7 @@ task("lz:oapp:status", "Get OApp status and statistics").setAction(
 
 ## Step 2. Registering Tasks
 
-Each Task must be imported in your `/tasks/index.ts`:
+Each Task must be imported in your `/tasks/index.ts` or the hardhat.config.ts:
 
 ```typescript
 import "./helpers/deployInteractive";
@@ -115,7 +132,7 @@ pnpm hardhat lz:oapp:status --network arbitrum-sepolia
 
 Now let's create a more complex task that sends cross-chain messages.
 
-Create `tasks/sendMessage.ts`:
+Create `tasks/send.ts`:
 
 ```typescript
 import { task, types } from "hardhat/config";
@@ -139,7 +156,7 @@ task("lz:oapp:send", "Send a cross-chain message")
         .toBytes();
 
       // Quote the fee
-      const fee = await contract.quoteSend(
+      const fee = await contract.quote(
         args.dstEid,
         args.message,
         options,
@@ -150,15 +167,24 @@ task("lz:oapp:send", "Send a cross-chain message")
         `Estimated native fee to send message: ${hre.ethers.utils.formatEther(fee.nativeFee)} ETH`,
       );
 
-      // Normally you would check the balance of the users account here
+      // Check user's balance
+      const [signer] = await hre.ethers.getSigners();
+      const balance = await signer.getBalance();
+
+      if (balance.lt(fee.nativeFee)) {
+        throw new Error(
+          `Insufficient balance. Required: ${hre.ethers.utils.formatEther(fee.nativeFee)} ETH, Available: ${hre.ethers.utils.formatEther(balance)} ETH`,
+        );
+      }
+
+      console.log(
+        `Account balance: ${hre.ethers.utils.formatEther(balance)} ETH`,
+      );
 
       // Send the message
-      const tx = await contract.sendMessage(
-        args.dstEid,
-        args.message,
-        options,
-        { value: fee.nativeFee },
-      );
+      const tx = await contract.send(args.dstEid, args.message, options, {
+        value: fee.nativeFee,
+      });
 
       console.log("\n⏳ Sending message...\n");
 
@@ -183,20 +209,35 @@ task("lz:oapp:send", "Send a cross-chain message")
 
 **Usage:**
 
-```bash
-# Send a message from Ethereum Sepolia ----> Arbitrum Sepolia
-pnpm hardhat lz:oapp:send --dst-eid 40231 --message "Hello from Ethereum!" --network ethereum-sepolia
+Send a message from Ethereum Sepolia ----> Arbitrum Sepolia
 
-# send a message from Abritrum Sepolia ----> Ethereum Sepolia
-pnpm hardhat lz:oapp:send --dst-eid 40161 --message "Hello from Arbitrum!" --network arbitrum-sepolia
+```bash
+pnpm hardhat lz:oapp:send --dst-eid 40231 --message "Hello from Ethereum" --network ethereum-sepolia
+```
+
+Send a message from Abritrum Sepolia ----> Ethereum Sepolia
+
+```bash
+pnpm hardhat lz:oapp:send --dst-eid 40161 --message "Hello from Arbitrum" --network arbitrum-sepolia
+```
+
+## Step 4 Validate the messages where sent
+
+Note you will need to wait for the executor to call your contract on the destination chain to see state updates.
+
+```bash
+pnpm hardhat lz:oapp:status --network arbitrum-sepolia
+```
+
+```bash
+pnpm hardhat lz:oapp:status --network ethereum-sepolia
 ```
 
 ## Key Takeaways
 
 - Hardhat tasks provide a reusable CLI interface for contract interaction
 - Use helper functions to reduce boilerplate and improve consistency
-- Always include proper error handling and user feedback
-- Follow naming conventions for discoverability
+- Always include proper error handling and logs
 
 ## Next Steps
 
