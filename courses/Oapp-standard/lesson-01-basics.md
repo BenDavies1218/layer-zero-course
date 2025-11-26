@@ -31,43 +31,17 @@ The OApp standard lets your contract send and receive arbitrary messages across 
 - Pays gas for executing `lzReceive` on destination
 - Configurable gas limits and execution options
 
-## Cross-Chain Message Flow
+## Simple Cross-Chain Message
 
-### Simple Send/Receive Pattern
+The Simple flow sends a message from chain A to Chain B
 
 ![LayerZero Message Flow](../../utils/SimpleCCM.png)
 
-**Step-by-Step Flow:**
+Use cases:
 
-1. **User calls `send()` on Chain A**
-   - OApp encodes message
-   - Calls `_lzSend()` with destination EID and message
+- Execute some logic on another chain
 
-2. **Endpoint V2 on Chain A emits packet**
-   - Creates unique packet with nonce
-   - Emits event for off-chain workers
-
-3. **DVNs verify the message**
-   - Monitor Chain A for packet events
-   - Wait for block confirmations
-   - Submit verification to Chain B
-
-4. **Executor picks up verified message**
-   - Waits for required DVN confirmations
-   - Prepares to deliver on Chain B
-
-5. **Executor calls Endpoint V2 on Chain B**
-   - Provides message payload and proofs
-   - Pays gas for destination execution
-
-6. **Endpoint calls `lzReceive()` on OApp B**
-   - Validates sender is registered peer
-   - Calls `_lzReceive()` with message
-   - OApp processes message
-
-## More than just a decentralized Instagram
-
-### ABA Pattern (Ping-Pong)
+## ABA Pattern (Ping-Pong)
 
 The ABA pattern enables nested messaging where a message from Chain A to Chain B triggers another message back to Chain A.
 
