@@ -1,6 +1,6 @@
 # Get Started building Omnichain Apps in 5 minutes
 
-This course will get you from cross-chain messenger boy to using LayerZero hero.
+This course will take you from cross-chain messenger boy to using LayerZero omnichain hero.
 
 ## Prerequisites Check
 
