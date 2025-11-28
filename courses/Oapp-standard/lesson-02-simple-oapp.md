@@ -157,7 +157,7 @@ function _lzReceive(
 
 Before deployment, compile your contract to verify there are no errors:
 
-Compile all contracts (uses both Forge and Hardhat)
+Compile all contracts
 
 ```bash
 pnpm compile
@@ -179,9 +179,9 @@ This will:
 
 Deploying an OApp involves three main steps:
 
-1. **Deploy Contracts** - Use `pnpm deploy:contracts` to deploy to multiple chains
-2. **Verify Contracts** - Verify the contracts so there methods can be seen on block explorers
-3. **Wire Contracts** - Configure the contracts to only accept messages from one another
+1. **Deploy Contracts**
+2. **Verify Contracts**
+3. **Wire Contracts**
 
 ### Step 1: Deploy Contracts
 
@@ -245,97 +245,28 @@ After deployment, contracts need to be "wired" to establish trusted peer relatio
 pnpm wire
 ```
 
-**What happens step-by-step:**
+### Wiring Transaction Execution
 
-1. **Deployment Scanning**
-   - Scans `deployments/` directory for all deployed contracts
-   - Reads deployment JSON files to extract:
-     - Contract name
-     - Network name
-     - Contract address
-     - Endpoint ID (EID)
+Runs: pnpm hardhat lz:oapp:wire --oapp-config deployments/peer-configurations/{ContractName}.config.ts
 
-2. **Contract Selection**
-   - Shows a list of deployed contracts with deployment counts
-   - Example: `SimpleMessenger (2 deployments)`
-   - If only one contract type exists, it auto-selects
-   - Otherwise, prompts you to select which contract to configure
+For each pathway, LayerZero CLI:
 
-3. **Deployment Display**
-   - Shows all deployments for the selected contract:
+1. Prompts for transaction signing:
 
-     ```
-     📦 Deployments for SimpleMessenger:
+2. Shows proposed configuration changes
+   Asks which network to sign transactions on
+   Lists all required transactions (setPeer, setEnforcedOptions, setConfig for DVNs, etc.)
 
-        1. Arbitrum Sepolia
-           Network: arbitrum-sepolia
-           Address: 0xABC123...
-           EID: 40231
+3. Executes transactions on each chain:
 
-        2. Ethereum Sepolia
-           Network: ethereum-sepolia
-           Address: 0xDEF456...
-           EID: 40161
-     ```
+4. setPeer(dstEid, peerAddress) - Registers peer contract on destination chain
+5. setEnforcedOptions(dstEid, msgType, options) - Sets minimum execution gas
+6. setConfig(...) - Configures DVNs and confirmations for message verification
+7. Waits for confirmations:
+8. Each transaction must be mined before proceeding Shows transaction hashes and block explorer links
+9. Verifies configuration:
 
-4. **Pathway Calculation**
-   - Calculates number of bidirectional pathways
-   - Formula: `n * (n-1) / 2` where n = number of deployments
-   - Example: 2 deployments = 1 pathway (A↔B)
-   - Example: 3 deployments = 3 pathways (A↔B, A↔C, B↔C)
-
-5. **Gas Limit Configuration**
-   - Prompts: `⛽ Enter gas limit for _lzReceive execution (default: 200000):`
-   - This sets the minimum gas that will be available when your `_lzReceive()` function executes on the destination chain
-   - Recommended: Profile your `_lzReceive()` function and add 20-30% buffer
-   - For SimpleMessenger, 200,000 is sufficient for basic string storage
-
-6. **DVN Configuration** (Default Settings Applied)
-   - Uses default configuration:
-     - Required DVNs: `['LayerZero Labs']`
-     - Optional DVNs: `[]`
-     - Confirmations: `1`
-   - DVNs (Decentralized Verifier Networks) verify cross-chain messages
-   - LayerZero Labs DVN is the default verifier for testnets
-
-7. **Config File Generation**
-   - Generates TypeScript configuration file at:
-     `deployments/peer-configurations/{ContractName}.config.ts`
-   - Contains:
-     - Contract definitions for each network with EIDs
-     - Enforced options (gas limits)
-     - Pathway configurations (peers, DVNs, confirmations)
-   - If file exists, prompts to overwrite
-
-8. **Config File Structure** (Example):
-
-9. **Wiring Execution Prompt**
-   - Asks: `🔧 Wire the OApp connections now? (Y/n):`
-   - If you select No, the config is saved and you can wire later
-   - If you select Yes, proceeds to execute wiring transactions
-
-10. **Wiring Transaction Execution** (If confirmed)
-    - Runs: `pnpm hardhat lz:oapp:wire --oapp-config deployments/peer-configurations/{ContractName}.config.ts`
-    - For each pathway, LayerZero CLI:
-
-      **a) Prompts for transaction signing:**
-      - Shows proposed configuration changes
-      - Asks which network to sign transactions on
-      - Lists all required transactions (setPeer, setEnforcedOptions, setConfig for DVNs, etc.)
-
-      **b) Executes transactions on each chain:**
-      - `setPeer(dstEid, peerAddress)` - Registers peer contract on destination chain
-      - `setEnforcedOptions(dstEid, msgType, options)` - Sets minimum execution gas
-      - `setConfig(...)` - Configures DVNs and confirmations for message verification
-
-      **c) Waits for confirmations:**
-      - Each transaction must be mined before proceeding
-      - Shows transaction hashes and block explorer links
-
-      **d) Verifies configuration:**
-      - Reads back on-chain configuration
-      - Compares with desired configuration from config file
-      - Reports any discrepancies
+10. Reads back on-chain configuration Compares with desired configuration from config file Reports any discrepancies
 
 **What Wiring Accomplishes:**
 

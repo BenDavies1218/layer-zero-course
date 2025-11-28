@@ -6,7 +6,7 @@ This course will take you from cross-chain messenger boy to using LayerZero omni
 
 Before you start, make sure you have:
 
-- ✅ Node.js v22 installed and running ([Download here](https://nodejs.org/)) hardhat seems to not v23 node.
+- ✅ Node.js v22 installed and running ([Download here](https://nodejs.org/))
 - ✅ pnpm installed (`pnpm install -g pnpm`)
 
 ## Repository Structure
@@ -16,40 +16,43 @@ Here's what you'll find in this repository:
 ```text
 layer-zero-course/
 ├── contracts/
-│   ├── Oapp/                         # Your OApp contracts
-│   │   └── SimpleMessenger.sol
-│   └── lessons/Oapp/                 # Example lesson contracts
-│       ├── ExampleSimpleMessenger.sol
-│       ├── ExamplePingPong.sol
-│       ├── ExampleMultichainBroadcaster.sol
-│       ├── ExampleSolanaMessenger.sol
-│       └── RivalOappContract.sol
+│   ├── Oapp/                        # Your OApp contracts
+│   ├── OFT/                         # Your OFT contracts
+│   ├── ONFT/                        # Your NOFT contracts
+│   ├── Ovault/                      # Your Ovault contracts
+│   └── lessons/                     # course contracts
+│       ├── Oapp/
+│       ├── OFT/
+│       ├── NOFT/
+│       └── Ovault/
 ├── courses/
-│   └── Oapp-standard/                # OApp course lessons
-│       ├── lesson-01-basics.md
-│       ├── lesson-02-simple-oapp.md
-│       ├── lesson-03-hardhat-tasks.md
-│       ├── lesson-04-aba-messaging.md
-│       ├── lesson-05-multichain-messaging.md
-│       ├── lesson-06-solana-interaction.md
-│       ├── lesson-07-protocol-deep-dive.md
-│       ├── lesson-08-challenges.md
-│       ├── challenges/               # Coding challenges
-│       └── solutions/                # Challenge solutions
-├── deploy/
-│   └── OApp.ts                       # Deployment script don't modify this
+│   ├── Oapp-standard/
+│   │    ├── challenges/
+│   │    └── solutions/
+│   ├── OFT-standard/
+│   │    ├── challenges/
+│   │    └── solutions/
+│   ├── ONFT-standard/
+│   │    ├── challenges/
+│   │    └── solutions/
+│   └── Ovault-standard/
+│        ├── challenges/
+│        └── solutions/
+├── scripts/                          # scripts
 ├── deployments/                      # Deployed contract artifacts
 │   ├── arbitrum-sepolia/
 │   ├── ethereum-sepolia/
+│   ├── base-sepolia/
+│   ├── polygon-amoy/
+│   ├── optimism-sepolia/
 │   └── peer-configurations/          # Generated wiring configs
 ├── tasks/
 │   ├── index.ts                      # Task barrel file
 │   ├── exampleTask.ts
 │   └── helpers/
 │       ├── taskHelpers.ts            # Shared task utilities
-│       ├── configGenerator.ts        # Config generation
-│       ├── deployInteractive.ts      # Interactive deployment
-│       └── wireInteractive.ts        # Interactive wiring
+│       ├── configGenerator.ts        # Wire Config generation
+│       └── wireInteractive.ts        # Interactive wiring helper
 ├── hardhat.config.ts                 # Hardhat configuration
 ├── layerzero.config.ts               # LayerZero OApp config
 ├── foundry.toml                      # Foundry configuration
@@ -64,8 +67,8 @@ layer-zero-course/
 **Key Directories:**
 
 - `contracts/` - Your Solidity contracts
-- `contracts/lessons/Oapp/` - Lesson contracts
-- `courses/Oapp-standard/` - Oapp lessons and challenges
+- `contracts/lessons/` - Lesson contracts
+- `courses/` - lessons, challenges and solutions
 - `tasks/` - Hardhat tasks for deployment and interaction
 - `deployments/` - Deployed contract artifacts and configs
 
