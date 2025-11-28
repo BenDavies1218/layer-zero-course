@@ -10,7 +10,7 @@ In this lesson, you'll learn how to implement the ABA (A → B → A) pattern, w
 - Receives messages and automatically responds with "pong"
 - Tracks ping/pong counts and message history
 - Demonstrates nested cross-chain messaging
-- How to handles automatic response logic in `_lzReceive()`
+- How to do more complex logic in `_lzReceive()` function
 
 ## Prerequisites
 
@@ -129,15 +129,13 @@ Add fee estimation for round trip:
         MessagingFee memory sendFee = _quote(_dstEid, sendPayload, sendOpts, false);
 
         // Calculate total fee for complete round trip
-        // Total = send fee + return fee
-        // Note: return execution gas is included in sendOptions via lzReceiveOption
         totalFee = sendFee.nativeFee + returnFee.nativeFee;
     }
 ```
 
 ### Step 6: Implement Ping Function
 
-Add the main ping function exact same as the simpleMessenger contract:
+Add the send function
 
 ```javascript
     function send(
@@ -179,8 +177,7 @@ Override the receive handler to process incoming messages:
         address /*_executor*/, // Executor address
         bytes calldata /*_extraData*/ // Additional data
     ) internal override {
-        // Validate that the message comes from a registered peer
-        // Note: OApp base contract already does this check, but we make it explicit for as we are calling _LzSend in the _LzRecieve
+        // Note: OApp base contract does this check, but we should also make it explicit for as we are calling _LzSend in the _LzRecieve
         bytes32 expectedPeer = peers[_origin.srcEid];
         if (expectedPeer != _origin.sender) {
             revert OnlyPeersAllowed(_origin.srcEid, _origin.sender);
@@ -262,21 +259,21 @@ pnpm compile
 Run the deployment command:
 
 ```bash
-pnpm deploy:contracts
+pnpm hardhat lz:deploy --tags PingPong
 ```
 
-**Run verification (Optional but good practice):**
+**Run verification:**
 
-For Arbitrum Sepolia deployment
+For Arbitrum Sepolia verification
 
 ```bash
-pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/PingPong.sol:PingPong 0x6EDCE65403992e310A62460808c4b910D972f10f
+pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/PingPong.sol:PingPong <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_PUBLIC_ADDRESS>
 ```
 
-For Arbitrum Sepolia deployment
+For ethereum Sepolia verification
 
 ```bash
-pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/PingPong.sol:PingPong 0x6EDCE65403992e310A62460808c4b910D972f10f
+pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/PingPong.sol:PingPong <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_PUBLIC_ADDRESS>
 ```
 
 **Run the interactive wiring tool:**
@@ -285,7 +282,7 @@ pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/PingPon
 pnpm wire
 ```
 
-### PingPong HardHat Task
+### Get Status Task
 
 ```javascript
 import { task } from 'hardhat/config'
@@ -326,6 +323,103 @@ pnpm hardhat lz:oapp:status:pingpong --network arbitrum-sepolia --dst-eid 40161
 
 ```bash
 pnpm hardhat lz:oapp:status:pingpong --network ethereum-sepolia --dst-eid 40231
+```
+
+### Send a Ping
+
+```javascript
+import { task, types } from 'hardhat/config'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
+
+import { Options } from '@layerzerolabs/lz-v2-utilities'
+
+import { getDeployedContract } from './helpers/taskHelpers'
+
+task('lz:oapp:pingpong', 'Send a ping message that will automatically trigger a pong response')
+    .addParam('dstEid', 'Destination endpoint ID', undefined, types.int)
+    .addOptionalParam('sendGas', 'Gas limit for ping execution on destination chain', 200000, types.int)
+    .addOptionalParam('returnGas', 'Gas limit for pong execution when returning', 200000, types.int)
+    .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+        try {
+            // Get deployed contract
+            const { contract } = await getDeployedContract(hre, 'PingPong')
+
+            // Step 1: Build options for the pong message (B → A)
+            // These will be encoded in the ping payload and used by destination to send pong back
+            const returnOptions = Options.newOptions().addExecutorLzReceiveOption(args.returnGas, 0).toBytes()
+
+            // Step 2: Quote the pong fee (what it costs to send pong from B back to A)
+            // We need to know this to pre-fund the destination contract
+            const emptyReturnOptions = '0x' // Pong doesn't trigger another message
+            const pongFee = await contract.quote(args.dstEid, returnOptions, emptyReturnOptions)
+
+            // Step 3: Build options for the ping message (A → B)
+            // CRITICAL: Include pongFee as native value to pre-fund the destination contract for pong response
+            const sendOptions = Options.newOptions().addExecutorLzReceiveOption(args.sendGas, pongFee).toBytes()
+
+            // Quote the fee for complete round trip
+            const totalFee = await contract.quote(args.dstEid, sendOptions, returnOptions)
+
+            console.log(`\nEstimated fee for complete ping-pong round trip:`)
+            console.log(`  ${hre.ethers.utils.formatEther(totalFee)} ETH`)
+            console.log(`  (includes ping A→B and automatic pong B→A)\n`)
+
+            // Check user's balance
+            const [signer] = await hre.ethers.getSigners()
+            const balance = await signer.getBalance()
+
+            if (balance.lt(totalFee)) {
+                throw new Error(
+                    `Insufficient balance. Required: ${hre.ethers.utils.formatEther(totalFee)} ETH, Available: ${hre.ethers.utils.formatEther(balance)} ETH`
+                )
+            }
+
+            console.log(`Account balance: ${hre.ethers.utils.formatEther(balance)} ETH`)
+
+            // Get current ping count before sending
+            const pingId = await contract.pingsSent()
+
+            // Send the ping (which will automatically trigger a pong)
+            const tx = await contract.send(args.dstEid, sendOptions, returnOptions, { value: totalFee })
+
+            console.log('\n⏳ Sending ping message...\n')
+
+            // Wait for confirmation
+            const receipt = await tx.wait()
+
+            // Display results
+            console.log('\n✅ Ping message sent successfully!\n')
+            console.log('Transaction Details:')
+            console.log(`  Hash: ${tx.hash}`)
+            console.log(`  Contract: ${contract.address}`)
+            console.log(`  Ping ID: ${pingId}`)
+            console.log(`  Destination EID: ${args.dstEid}`)
+            console.log(`  Send Gas: ${args.sendGas}`)
+            console.log(`  Return Gas: ${args.returnGas}`)
+            console.log(`  Total Fee: ${hre.ethers.utils.formatEther(totalFee)} ETH`)
+            console.log(`  Block: ${receipt.blockNumber}`)
+            console.log(`  Gas Used: ${receipt.gasUsed.toString()}`)
+            console.log(`\n🔍 Track on LayerZero Scan:`)
+            console.log(`  https://testnet.layerzeroscan.com/tx/${tx.hash}\n`)
+        } catch (error: any) {
+            console.log('error', error.toString())
+            throw error
+        }
+    })
+```
+
+**Usage:**
+
+Send a Ping from Ethereum Sepolia ----> Arbitrum Sepolia
+
+```bash
+pnpm hardhat lz:oapp:pingpong --network ethereum-sepolia --dst-eid 40231
+```
+
+Send a Ping from Abritrum Sepolia ----> Ethereum Sepolia
+
+```bash
+pnpm hardhat lz:oapp:pingpong --network arbitrum-sepolia --dst-eid 40161
 ```
 
 ## Key Takeaways

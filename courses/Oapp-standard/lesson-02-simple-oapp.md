@@ -188,25 +188,12 @@ Deploying an OApp involves three main steps:
 Run the deployment command:
 
 ```bash
-pnpm deploy:contracts
+pnpm hardhat lz:deploy --tags SimplerMessenger
 ```
 
 **Example Output:**
 
-```
-📦 Available contracts:
-
-  1. SimpleMessenger
-  2. RivalOappContract
-
-🔍 Select contract number to deploy: 1
-
-✅ Selected contract: SimpleMessenger
-
-📝 Updated deploy/OApp.ts with contract: SimpleMessenger
-
-🚀 Running deployment for SimpleMessenger...
-
+```text
 ? Select networks to deploy to: (Use arrow keys + space to select, Enter to confirm)
 ❯ ◯ arbitrum-sepolia
   ◯ ethereum-sepolia
@@ -237,24 +224,13 @@ After deployment, verify your contracts on block explorers (Etherscan, Arbiscan,
 For Arbitrum Sepolia verification
 
 ```bash
-pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <YOUR_DEPLOYED_CONTRACT_ADDRESS>
+pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_PUBLIC_ADDRESS>
 ```
 
 For ethereum Sepolia verification
 
 ```bash
-pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <YOUR_DEPLOYED_CONTRACT_ADDRESS>
-```
-
-**Example Output:**
-
-```
-Successfully submitted source code for contract
-contracts/Oapp/SimpleMessenger.sol:SimpleMessenger at 0xABC123...
-for verification on the block explorer. Waiting for verification result...
-
-Successfully verified contract SimpleMessenger on the block explorer.
-https://sepolia.arbiscan.io/address/0xABC123...#code
+pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_PUBLIC_ADDRESS>
 ```
 
 ### Step 3: Wire Contracts (Configure Cross-Chain Connections)

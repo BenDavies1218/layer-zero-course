@@ -69,11 +69,6 @@ task('lz:oapp:pingpong', 'Send a ping message that will automatically trigger a 
             console.log(`  Total Fee: ${hre.ethers.utils.formatEther(totalFee)} ETH`)
             console.log(`  Block: ${receipt.blockNumber}`)
             console.log(`  Gas Used: ${receipt.gasUsed.toString()}`)
-            console.log(`\n📊 What happens next:`)
-            console.log(`  1. Ping message will be delivered to destination chain`)
-            console.log(`  2. Destination will automatically send pong response`)
-            console.log(`  3. Pong will be delivered back to this chain`)
-            console.log(`  4. Use 'pnpm hardhat lz:oapp:status:pingpong --network ${hre.network.name}' to check status`)
             console.log(`\n🔍 Track on LayerZero Scan:`)
             console.log(`  https://testnet.layerzeroscan.com/tx/${tx.hash}\n`)
         } catch (error: any) {
