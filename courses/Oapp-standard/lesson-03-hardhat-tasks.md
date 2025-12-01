@@ -36,8 +36,6 @@ Hardhat provides several built-in parameter types that can be passed through the
 - `types.boolean` - Boolean values
 - `types.json` - JSON objects
 
-If you would rather hardcode values such as contract name or address in your task then your more than welcome but you will need to change them each time you call the task.
-
 ```typescript
 import { task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -74,7 +72,7 @@ Built-in CLI flags (available to all tasks):
 
 Let's start with a simple task that queries your OApp status.
 
-Create `tasks/getStatus.ts`:
+Create `tasks/status.ts`:
 
 ```typescript
 import { task } from "hardhat/config";
@@ -102,7 +100,7 @@ task("lz:oapp:status", "Get OApp status and statistics").setAction(
     const messagesReceived = await contract.messagesReceived();
     const lastMessage = await contract.lastMessage();
 
-    // Console Log Display results, here you could write stuff to a JSON or whatever you want.
+    // Console Log Display results, alternatively you could write stuff to a JSON file or whatever you want.
     console.log("Contract Status:");
     console.log(`  Address: ${deployment.address}`);
     console.log(`  Messages Sent: ${messagesSent}`);
@@ -117,9 +115,8 @@ task("lz:oapp:status", "Get OApp status and statistics").setAction(
 Each Task must be imported in your `/tasks/index.ts` or the hardhat.config.ts:
 
 ```typescript
-import "./helpers/deployInteractive";
 import "./helpers/wireInteractive";
-import "./getStatus";
+import "./status";
 ```
 
 ## Step 3. Running the Task

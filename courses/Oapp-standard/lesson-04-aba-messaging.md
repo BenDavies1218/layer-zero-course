@@ -282,47 +282,72 @@ pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/PingPon
 pnpm wire
 ```
 
-### Get Status Task
+### Status Task
+
+We could write a new task for each contract interaction but it would be better to refactor our status to work with more than one contract.
+
+#### 1. Start by creating a new function
 
 ```javascript
-import { task } from 'hardhat/config'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import { Contract } from 'ethers'
 
-task('lz:oapp:status:pingpong', 'Get PingPong contract status and statistics').setAction(
-    async (args, hre: HardhatRuntimeEnvironment) => {
-        // Get the network that hardhat is connected to
-        const network = hre.network.name
-        console.log(`\n📊 Querying PingPong on ${network}...\n`)
+export const readContractState = async (contract: Contract, address: string, contractName: string) => {
+    console.log('Contract Status:')
 
-        // Get the deployment
-        const deployment = await hre.deployments.get('PingPong')
+    if (contractName === 'SimpleMessenger') {
+        const messagesSent = await contract.messagesSent()
+        const messagesReceived = await contract.messagesReceived()
+        const lastMessage = await contract.lastMessage()
 
-        // Call the getContractAt()
-        const contract = await hre.ethers.getContractAt('PingPong', deployment.address)
+        console.log(`  Address: ${address}`)
+        console.log(`  Messages Sent: ${messagesSent}`)
+        console.log(`  Messages Received: ${messagesReceived}`)
+        console.log(`  Last Message Received: "${lastMessage}"\n`)
+    }
 
-        // Query state variables
+    if (contractName === 'PingPong') {
         const pingsSent = await contract.pingsSent()
         const pingsReceived = await contract.pingsReceived()
         const pongsSent = await contract.pongsSent()
         const pongsReceived = await contract.pongsReceived()
 
-        // Console Log Display results
-        console.log('PingPong Contract Status:')
-        console.log(`  Address: ${deployment.address}`)
+        console.log(`  Address: ${address}`)
         console.log(`  Pings Sent: ${pingsSent}`)
         console.log(`  Pings Received: ${pingsReceived}`)
         console.log(`  Pongs Sent: ${pongsSent}`)
         console.log(`  Pongs Received: ${pongsReceived}\n`)
     }
-)
+}
+
+```
+
+now lets modify our status task
+
+```javascript
+import { task } from 'hardhat/config'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
+
+task('lz:oapp:status', 'Get OApp status and statistics')
+    .addParam('contract', 'The contract name to query status')
+    .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+        // Get the network that hardhat is connected to
+        const network = hre.network.name
+        const contractName = args.contract
+
+        console.log(`\n📊 Querying ${contractName} on ${network}...\n`)
+
+        const { contract, address } = await getDeployedContract(hre, contractName)
+
+        await readContractState(contract, address, contractName)
+    })
 ```
 
 ```bash
-pnpm hardhat lz:oapp:status:pingpong --network arbitrum-sepolia --dst-eid 40161
+pnpm hardhat lz:oapp:status --contract PingPong --network arbitrum-sepolia
 ```
 
 ```bash
-pnpm hardhat lz:oapp:status:pingpong --network ethereum-sepolia --dst-eid 40231
+pnpm hardhat lz:oapp:status --contract PingPong --network ethereum-sepolia
 ```
 
 ### Send a Ping
@@ -376,9 +401,6 @@ task('lz:oapp:pingpong', 'Send a ping message that will automatically trigger a 
 
             console.log(`Account balance: ${hre.ethers.utils.formatEther(balance)} ETH`)
 
-            // Get current ping count before sending
-            const pingId = await contract.pingsSent()
-
             // Send the ping (which will automatically trigger a pong)
             const tx = await contract.send(args.dstEid, sendOptions, returnOptions, { value: totalFee })
 
@@ -392,7 +414,6 @@ task('lz:oapp:pingpong', 'Send a ping message that will automatically trigger a 
             console.log('Transaction Details:')
             console.log(`  Hash: ${tx.hash}`)
             console.log(`  Contract: ${contract.address}`)
-            console.log(`  Ping ID: ${pingId}`)
             console.log(`  Destination EID: ${args.dstEid}`)
             console.log(`  Send Gas: ${args.sendGas}`)
             console.log(`  Return Gas: ${args.returnGas}`)
@@ -413,13 +434,13 @@ task('lz:oapp:pingpong', 'Send a ping message that will automatically trigger a 
 Send a Ping from Ethereum Sepolia ----> Arbitrum Sepolia
 
 ```bash
-pnpm hardhat lz:oapp:pingpong --network ethereum-sepolia --dst-eid 40231
+pnpm hardhat lz:oapp:send --network ethereum-sepolia --dst-eid 40231
 ```
 
 Send a Ping from Abritrum Sepolia ----> Ethereum Sepolia
 
 ```bash
-pnpm hardhat lz:oapp:pingpong --network arbitrum-sepolia --dst-eid 40161
+pnpm hardhat lz:oapp:send --network arbitrum-sepolia --dst-eid 40161
 ```
 
 ## Key Takeaways

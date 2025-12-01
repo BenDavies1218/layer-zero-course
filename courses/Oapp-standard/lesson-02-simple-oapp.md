@@ -224,13 +224,13 @@ After deployment, verify your contracts on block explorers (Etherscan, Arbiscan,
 For Arbitrum Sepolia verification
 
 ```bash
-pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_PUBLIC_ADDRESS>
+pnpm hardhat verify --network arbitrum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_WALLET_PUBLIC_ADDRESS>
 ```
 
 For ethereum Sepolia verification
 
 ```bash
-pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_PUBLIC_ADDRESS>
+pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleMessenger.sol:SimpleMessenger <DEPLOYED_CONTRACT_ADDRESS> <LAYERZERO_V2_ENDPOINT_ADDRESS> <DEPLOYER_WALLET_PUBLIC_ADDRESS>
 ```
 
 ### Step 3: Wire Contracts (Configure Cross-Chain Connections)
@@ -247,7 +247,7 @@ pnpm wire
 
 ### Wiring Transaction Execution
 
-Runs: pnpm hardhat lz:oapp:wire --oapp-config deployments/peer-configurations/{ContractName}.config.ts
+The script Runs: pnpm hardhat lz:oapp:wire --oapp-config deployments/peer-configurations/{ContractName}.config.ts
 
 For each pathway, LayerZero CLI:
 

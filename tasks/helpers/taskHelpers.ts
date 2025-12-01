@@ -18,7 +18,7 @@ export async function getDeployedContract(
         const deployment = await hre.deployments.get(contractName)
         const contract = await hre.ethers.getContractAt(contractName, deployment.address, signer)
 
-        logger.info(`✅ Found ${contractName} at: ${deployment.address}`)
+        logger.info(`✅ Found ${contractName} at: ${deployment.address}\n`)
 
         return {
             address: deployment.address,

@@ -1,5 +1,3 @@
 import './helpers/wireInteractive'
-import './getStatus'
-import './getStatusPingPong'
+import './status'
 import './send'
-import './sendPingPong'
