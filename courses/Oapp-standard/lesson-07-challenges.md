@@ -16,7 +16,6 @@ Use of Claude, GPT, Cursor or other AI to complete the Challenges is absolutely 
 | [Quantum Thief](./challenges/challenge-02-quantum-thief.md)     | 🟢 Easy    |
 | [Cosmic Voting](./challenges/challenge-03-cosmic-voting.md)     | 🟡 Medium  |
 | [Bridge Breaker](./challenges/challenge-04-bridge-breaker.md)   | 🟡 Medium  |
-| [Nexus Prime Bank](./challenges/challenge-05-nexus-prime.md)    | 🔴 Hard    |
 
 ---
 
@@ -60,23 +59,7 @@ BridgeCorp deployed their "audited and secure" bridge with 15,000 Labrys tokens 
 
 ---
 
-### 🔴 [Challenge 5: Nexus Prime - The Omnichain DeFi Bank 👑](./challenges/challenge-05-nexus-prime.md)
-
-**The Great Convergence** is here. Build a production-grade omnichain DeFi bank that unites treasuries across all blockchain realms!
-
-**Your Mission**:
-
-- Omnichain deposit system on **(Minimum 2 EVM chains + Pre-deployed Solana Oapp)**
-- Withdraw on **any chain** (deposit on solana, withdraw on Base!)
-- Maintain perfect TVL accounting across all realms
-
-**Skills**: ALL previous lessons, Solana Integration, Production-Grade Security
-
-[**Start Challenge →**](./challenges/challenge-05-nexus-prime.md)
-
----
-
-_Last Updated: November 2025_
+_Last Updated: Febuary 2026_
 
 _Course Version: 1.0_
 

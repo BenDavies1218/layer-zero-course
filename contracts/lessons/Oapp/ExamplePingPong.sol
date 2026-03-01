@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { OApp, Origin, MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title PingPong
@@ -46,10 +46,7 @@ contract ExamplePingPong is OApp, OAppOptionsType3 {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        address _endpoint,
-        address _owner
-    ) OApp(_endpoint, _owner) Ownable(_owner) {}
+    constructor(address _endpoint, address _owner) OApp(_endpoint, _owner) Ownable(_owner) {}
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
@@ -62,11 +59,7 @@ contract ExamplePingPong is OApp, OAppOptionsType3 {
      * @param _sendOptions Execution options for ping message
      * @param _returnOptions Execution options for automatic pong response
      */
-    function ping(
-        uint32 _dstEid,
-        bytes calldata _sendOptions,
-        bytes calldata _returnOptions
-    ) external payable {
+    function ping(uint32 _dstEid, bytes calldata _sendOptions, bytes calldata _returnOptions) external payable {
         // Encode ping with return options included
         bytes memory payload = abi.encode(MessageType.PING, pingsSent, _returnOptions);
 
@@ -74,13 +67,7 @@ contract ExamplePingPong is OApp, OAppOptionsType3 {
         bytes memory options = combineOptions(_dstEid, SEND, _sendOptions);
 
         // Send ping with all gas for round trip
-        _lzSend(
-            _dstEid,
-            payload,
-            options,
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
-        );
+        _lzSend(_dstEid, payload, options, MessagingFee(msg.value, 0), payable(msg.sender));
 
         emit PingSent(_dstEid, pingsSent);
         pingsSent++;
@@ -166,7 +153,6 @@ contract ExamplePingPong is OApp, OAppOptionsType3 {
 
             // Send automatic pong response
             _sendPong(_origin.srcEid, returnOptions);
-
         } else if (messageType == MessageType.PONG) {
             // Received PONG - just record, don't respond
             pongsReceived++;
@@ -189,13 +175,7 @@ contract ExamplePingPong is OApp, OAppOptionsType3 {
 
         // Send pong using pre-allocated gas from ping
         // msg.value contains the native fee allocated by sender
-        _lzSend(
-            _dstEid,
-            pongPayload,
-            options,
-            MessagingFee(msg.value, 0),
-            payable(address(this))
-        );
+        _lzSend(_dstEid, pongPayload, options, MessagingFee(msg.value, 0), payable(address(this)));
 
         emit PongSent(_dstEid, pongsSent);
         pongsSent++;

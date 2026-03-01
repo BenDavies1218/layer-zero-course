@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { OApp, Origin, MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title MultichainBroadcaster
@@ -51,35 +51,17 @@ contract ExampleMultichainBroadcaster is OApp, OAppOptionsType3 {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event BroadcastSent(
-        uint32[] dstEids,
-        Category category,
-        string message,
-        uint256 totalFee
-    );
+    event BroadcastSent(uint32[] dstEids, Category category, string message, uint256 totalFee);
 
-    event MessageReceived(
-        uint32 indexed srcEid,
-        Category category,
-        string message,
-        uint256 timestamp
-    );
+    event MessageReceived(uint32 indexed srcEid, Category category, string message, uint256 timestamp);
 
-    event SingleMessageSent(
-        uint32 indexed dstEid,
-        Category category,
-        string message,
-        uint256 fee
-    );
+    event SingleMessageSent(uint32 indexed dstEid, Category category, string message, uint256 fee);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        address _endpoint,
-        address _owner
-    ) OApp(_endpoint, _owner) Ownable(_owner) {}
+    constructor(address _endpoint, address _owner) OApp(_endpoint, _owner) Ownable(_owner) {}
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
@@ -163,13 +145,7 @@ contract ExampleMultichainBroadcaster is OApp, OAppOptionsType3 {
         bytes memory payload = abi.encode(_category, _message, block.timestamp);
         bytes memory options = combineOptions(_dstEid, SEND, _options);
 
-        _lzSend(
-            _dstEid,
-            payload,
-            options,
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
-        );
+        _lzSend(_dstEid, payload, options, MessagingFee(msg.value, 0), payable(msg.sender));
 
         messagesSentTo[_dstEid]++;
 
@@ -224,10 +200,7 @@ contract ExampleMultichainBroadcaster is OApp, OAppOptionsType3 {
      * @param _count Number of messages to retrieve
      * @return messages Array of messages
      */
-    function getMessageHistory(
-        uint256 _startIndex,
-        uint256 _count
-    ) external view returns (Message[] memory messages) {
+    function getMessageHistory(uint256 _startIndex, uint256 _count) external view returns (Message[] memory messages) {
         require(_startIndex < messageHistory.length, "Invalid start index");
 
         uint256 end = _startIndex + _count;
@@ -255,9 +228,7 @@ contract ExampleMultichainBroadcaster is OApp, OAppOptionsType3 {
      * @return sent Messages sent to this chain
      * @return received Messages received from this chain
      */
-    function getChainStats(
-        uint32 _eid
-    ) external view returns (uint256 sent, uint256 received) {
+    function getChainStats(uint32 _eid) external view returns (uint256 sent, uint256 received) {
         sent = messagesSentTo[_eid];
         received = messagesReceivedFrom[_eid];
     }
@@ -285,12 +256,7 @@ contract ExampleMultichainBroadcaster is OApp, OAppOptionsType3 {
 
         // Store in history
         messageHistory.push(
-            Message({
-                category: category,
-                content: content,
-                timestamp: timestamp,
-                srcEid: _origin.srcEid
-            })
+            Message({ category: category, content: content, timestamp: timestamp, srcEid: _origin.srcEid })
         );
 
         // Update latest by category

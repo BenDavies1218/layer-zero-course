@@ -31,7 +31,9 @@ The OApp standard lets your contract send and receive arbitrary messages across 
 - Pays gas for executing `lzReceive` on destination
 - Configurable gas limits and execution options
 
-## Simple Cross-Chain Message
+## Cross-Chain Messaging Patterns
+
+### Simple Cross-Chain Message
 
 The Simple flow sends a message from chain A to Chain B
 
@@ -41,7 +43,7 @@ Use cases:
 
 - Execute some logic on another chain
 
-## ABA Pattern (Ping-Pong)
+### ABA Pattern (Ping-Pong)
 
 The ABA pattern enables nested messaging where a message from Chain A to Chain B triggers another message back to Chain A.
 
@@ -53,7 +55,7 @@ Use cases:
 - Request-response patterns
 - Conditional workflows
 
-## Batch Send Pattern
+### Batch Send Pattern
 
 Send multiple messages to different chains in a single transaction.
 
@@ -65,7 +67,7 @@ Use cases:
 - Broadcasting to multiple networks
 - Cross-chain governance
 
-## Contract Ownership Best Practices
+### Contract Ownership Best Practices
 
 LayerZero's Contract Standards inherit the OpenZeppelin `Ownable` standard by default. This enables secure administration of deployed contracts.
 
@@ -132,8 +134,8 @@ function _lzReceive(...) internal override {
 1. **OApp is the foundation** for all LayerZero cross-chain messaging
 2. **Endpoint V2** handles all protocol-level concerns (DVNs, Executors, verification)
 3. **Peer validation** is automatic - only registered peers can communicate
-4. **Ownership matters** - try to use multisig for production contracts if possible.
-5. **Gas planning** is critical - always quote before sending, and sometimes if it fails add a native drop.
+4. **Ownership matters** - Contract owners hold all the power. Try to use a multisig wallet for production environments.
+5. **Gas planning** is critical - always quote before sending.
 6. **Security first** - validate inputs, protect against reentrancy and other smart contract exploits.
 
 ## Next Steps

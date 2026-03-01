@@ -88,29 +88,39 @@ Create your `.env` file from the template:
 cp .env.example .env
 ```
 
-**Important**: The LayerZero V2 endpoint address is already configured for all testnets in the hardhat config is you want to add more please make the layerzero V2 endpoint is correctly applied.
+**Note**: The LayerZero V2 endpoint eid is already configured for all testnets in the hardhat config is you want to add more please make the layerzero V2 eid is correctly applied.
 
 ## Step 3: Run hardhart Compile
+
+We just want to compile all the lesson and challenge contracts.
 
 ```bash
 pnpm compile
 ```
 
-## Where from here?
+## Where from here ???
 
 **Learn the fundamentals**
 
 [Lesson 01 - Oapp Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
-This course is designed to introduce you to the LayerZero protocol. It's a mix of technical and fun challenges designed to indroduce you to the basics of cross-chain messaging, no prerequisites required.
+This course is designed to introduce you to the LayerZero protocol. It's a mix of technical and fun challenges designed to get you hooked on layerzero and indroduce you to the basics of cross-chain messaging, no prerequisites required.
 
 ---
 
-**OFT Token Standard** (Coming Soon)
+**OFT Standard** (Coming Soon)
 
 [Lesson 01 - OFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
 
-This course is the next step towards building Omnichain applications. It's recommended you have completed at least the OApp standard lessons, but you're not required to. The OFT standard is technical and the challenges are designed on real use cases and how to implement production-ready solutions for Omnichain apps.
+This course is the next step towards building Omnichain applications. It's recommended you have completed at least the OApp standard lessons, but you're not required to. The OFT standard is technical and the challenges are designed on real use cases and how to implement production solutions for Omnichain apps.
+
+---
+
+**Solana OFT Standard** (Coming Soon)
+
+[Lesson 01 - Solana OFT Basics](./courses/Oapp-standard/lesson-01-basics.md)
+
+This is an extention of the OFT Standard. It's recommended you have completed at least the OFT standard lessons. The Solana OFT standard is technical and the challenges are designed on real use cases and how to implement production solutions for Omnichain apps.
 
 ---
 
@@ -122,6 +132,14 @@ This course is very similar to the OFT standard. It's recommended you have compl
 
 ---
 
+**Composer Standard** (Coming Soon)
+
+[Lesson 01 - Composer Basics](./courses/Oapp-standard/lesson-01-basics.md)
+
+This is an extention of the OFT Standard. It's recommended you have completed at least the OFT standard lessons. The Solana OFT standard is technical and the challenges are designed on real use cases and how to implement production solutions for Omnichain apps.
+
+---
+
 **OVault Standard** (Coming Soon)
 
 [Lesson 01 - OVault Basics](./courses/Oapp-standard/lesson-01-basics.md)
@@ -129,3 +147,7 @@ This course is very similar to the OFT standard. It's recommended you have compl
 Building an Omnichain vault is the most challenging course here. You should have completed the OFT Standard or NOFT Standard at a minimum before starting this. The OVault standard is quite technical and requires a high level of understanding of the layerzero V2 protocol including: OFT Standard and ERC-4626 vault standard.
 
 ---
+
+### Want To Contribute
+
+If you have experience with layerzero and would like to share that knowledge, feel free to open a pull request.

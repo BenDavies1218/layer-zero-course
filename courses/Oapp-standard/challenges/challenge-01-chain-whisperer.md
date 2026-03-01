@@ -1,6 +1,6 @@
 # Challenge 1: Chain Whisperer 🌌
 
-**Difficulty**: 🟢 Easy
+**Difficulty**: 🟢 Easy | **Type**: Security Exploit | **Time**: 0.5-1 hours
 
 ## 📖 The Story
 
@@ -13,9 +13,8 @@ Your quest: Master the Echo Stone by building a messenger that transforms messag
 Build an **Echo Transformer** OApp that:
 
 1. ✨ **Transforms messages** - Outputs the chainName and string converted to leekspeak
-2. 📝 **Transforms History** - All messages should be recorded
-3. ⏰ **Cooldown** - Add cooldown protection so only one message can be transformed every 60 seconds
-4. 📏 **Length limits** - Enforces maximum message length (100 chars)
+2. 📏 **Length limits** - Enforces maximum message length (100 chars)
+3. 📝 **Transforms History** - All messages should be recorded
 
 LeetSpeak Mappings
 
@@ -56,24 +55,7 @@ This message has way more than one hundred characters and should fail validation
 Error: Message too long to transform Message length: 137 chars, Maximum allowed: 100 chars
 ```
 
-### Task 3 Cooldown
-
-**Scenario**:
-
-```text
-T=0 Seconds
-echoTransformer.whisper(40231, "first message", options); ✅ Success
-
-T=30 seconds
-echoTransformer.whisper(40231, "second message", options); ❌ Error
-// Cooldown is active Must wait: 30 more seconds
-
-
-T=65 seconds
-echoTransformer.whisper(40231, "third message", options); ✅ Success
-```
-
-### Task 4: Echo History
+### Task 3: Echo History
 
 **Input**:
 
@@ -120,7 +102,6 @@ A single Markdown file containing:
 3. **Evidence**:
    - Message transformation
    - Message history
-   - Cooldown rejection
    - Length limit rejection
 4. **Summary**: 200 words on your implementation
 

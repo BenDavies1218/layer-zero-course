@@ -1,58 +1,66 @@
 # Challenge 2: Quantum Thief 💎
 
-**Difficulty**: 🟢 Easy
+**Difficulty**: 🟢 Easy | **Type**: Security Exploit | **Time**: 0.5-1 hours
 
 ## 📖 The Story
 
-A Rival OApp developer has created a "secure" vault that uses the **A-B-A pattern** for cross-chain withdrawal verification... or so they think. Their vault on Base is guarded by a guardian chain that must approve all withdrawals using LayerZero's ABA messaging pattern.
+VaultCorp just launched their "quantum-secure" cross-chain vault. They use a sophisticated approval system where withdrawals must be approved by a guardian chain using LayerZero's ABA (A→B→A) messaging pattern.
 
-They're so confident in their security they released this statement earlier:
+Their marketing team announced:
 
-_"It's mathematically impossible to drain! If you can drain it, the tokens are yours."_
+> "Our vault is mathematically secure. Each withdrawal requires cross-chain approval. The funds are safer than Fort Knox!"
 
-**Your mission:** Show them who is the omnichain king. Find the vulnerability and drain of their users funds.
+**Your mission:** Prove them wrong. Find the vulnerability and drain the vault using the message replay attack.
 
-**Contract Reference:** [RivalOappContract.sol](../../../src/contracts/lessons/Oapp/RivalOappContract.sol)
+**Contract Reference:** [VaultReplayVulnerable.sol](../../../contracts/lessons/Oapp/VaultReplayVulnerable.sol)
 
-### Rival Oapp Deployment Addresses
+### Vault Deployment Addresses
 
-- **Base Sepolia (Main Vault)**: `[TO BE DEPLOYED]`
-- **Sepolia (Guardian)**: `[TO BE DEPLOYED]`
+- **Arbitrum Sepolia (Main Vault)**: `[TO BE DEPLOYED]`
+- **Base Sepolia (Approval Guardian)**: `[TO BE DEPLOYED]`
 
 **⚠️ You do NOT need to modify their contract! The vulnerability exists in the deployed code.**
 
 ## 🧠 The Architecture
 
-The Rival's "secure" vault works as follows:
+VaultCorp's "secure" withdrawal system works as follows:
 
-1. **Deposit Phase** (Base Sepolia):
-
-   - Users deposit tokens into the vault on Base Sepolia
+1. **Deposit Phase** (Arbitrum Sepolia):
+   - Users deposit ERC20 tokens into the vault
    - Balances are tracked internally
 
-2. **Withdrawal Request** (Base → Sepolia):
+2. **Withdrawal Request** (Arbitrum → Base):
+   - User calls `requestWithdrawal(amount, approvalChain, options...)`
+   - Balance is immediately deducted to prevent double requests
+   - Contract sends `WITHDRAWAL_REQUEST` to Base guardian chain
 
-   - User calls `requestWithdrawal()` on Base Sepolia
-   - Contract sends a `WITHDRAWAL_REQUEST` ping to Sepolia guardian
+3. **Guardian Approval** (Base → Arbitrum):
+   - Base guardian receives the request
+   - Validates the request is legitimate
+   - Sends `CREDIT_APPROVAL` message back to Arbitrum
 
-3. **Guardian Approval** (Sepolia → Base):
+4. **Withdrawal Execution** (Arbitrum):
+   - Arbitrum receives the approval
+   - Transfers tokens to the user
+   - ✅ Withdrawal complete!
 
-   - Sepolia guardian receives the request
-   - Checks the withdraw request is valid then sends `WITHDRAWAL_APPROVAL` pong back to Base
-
-4. **Withdrawal Execution** (Base Sepolia):
-   - Base receives the approval
-   - Executes the token transfer
-   - Updates user balance
-
-Seems secure, right? There's a critical flaw somewhere in this flow...
+Seems secure, right? **There's a critical flaw in step 4...**
 
 ## 🎯 Objectives
 
 **Your Task:**
 
-1. 🔍 **Analyze** - Study the RivalsOappContract implementation for vulnerabilities
-2. 💰 **Drain** - Successfully drain their users funds
+1. 🔍 **Analyze** - Study VaultReplayVulnerable.sol to find the vulnerability
+2. 💰 **Exploit** - Drain more tokens than you deposited
+3. 📝 **Document** - Explain the attack in your submission
+
+## 🕵️ The Vulnerability Hint
+
+Think about what happens when a `CREDIT_APPROVAL` message arrives at the vault:
+
+- Does the contract track which approval messages have been processed?
+- What if you could intercept the approval message data?
+- Could you send the same approval message multiple times?
 
 ## 📋 Submission
 
@@ -61,19 +69,17 @@ A single Markdown file containing:
 1. **Complete Contract Code**:
 2. **Deployed Contract Addresses**:
 3. **Evidence**:
-   - The user balance has been drained to your wallet
+   - Successfully drain more tokens than you initially deposited
 4. **Summary**: 200 words on your implementation
 
 ## Post Challenge
 
-**Please deposit tokens back to the Rival's contract so other students can complete the challenge.**
+**Please refund the vault so other students can complete the challenge!**
 
-The Rival's contract can be refunded by calling the deposit method on base Oapp contract:
-
-```solidity
-rivalContract.deposit(DRAINED_AMOUNT);
-```
+After draining, deposit the tokens back using the `deposit()` function.
 
 ---
+
+**Ready to become a Quantum Thief?** 💎
 
 [← Back to Challenges](../lesson-06-challenges.md)

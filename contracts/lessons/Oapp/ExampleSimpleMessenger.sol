@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { OApp, Origin, MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title SimpleMessenger
@@ -62,11 +62,7 @@ contract ExampleSimpleMessenger is OApp, OAppOptionsType3 {
     /// @param message The message content
     /// @param srcEid Source endpoint ID
     /// @param sender The address of the sending OApp
-    event MessageReceived(
-        string message,
-        uint32 indexed srcEid,
-        bytes32 indexed sender
-    );
+    event MessageReceived(string message, uint32 indexed srcEid, bytes32 indexed sender);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -77,10 +73,7 @@ contract ExampleSimpleMessenger is OApp, OAppOptionsType3 {
      * @param _endpoint The LayerZero endpoint address for this chain
      * @param _owner The contract owner address
      */
-    constructor(
-        address _endpoint,
-        address _owner
-    ) OApp(_endpoint, _owner) Ownable(_owner) {}
+    constructor(address _endpoint, address _owner) OApp(_endpoint, _owner) Ownable(_owner) {}
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
@@ -100,11 +93,7 @@ contract ExampleSimpleMessenger is OApp, OAppOptionsType3 {
      * @param _message Message content to send
      * @param _options Execution options (gas limit, etc.)
      */
-    function sendMessage(
-        uint32 _dstEid,
-        string calldata _message,
-        bytes calldata _options
-    ) external payable {
+    function sendMessage(uint32 _dstEid, string calldata _message, bytes calldata _options) external payable {
         // Encode the string message into bytes
         bytes memory _payload = abi.encode(_message);
 

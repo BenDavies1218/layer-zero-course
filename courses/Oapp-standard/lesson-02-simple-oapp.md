@@ -1,12 +1,12 @@
 # Lesson 02 — Building Your First OApp
 
-In this lesson, you'll build a simple cross-chain messaging application using LayerZero V2's OApp standard. We'll create a contract that can encoded messages between chains, deploy it to two testnets and verify them.
+In this lesson, you'll build a simple cross-chain messaging application using LayerZero V2's OApp standard. We'll create a contract that can encoded messages between chains, deploy it to two testnets and verify their source code.
 
 ## What We're Building
 
 **SimpleMessenger** - A contract that:
 
-- Sends string messages to the same contract on another chain
+- Sends messages to the same contract on another chain
 - Receives and stores messages from other chains
 - Tracks message history and counts sent and received messages
 
@@ -38,6 +38,16 @@ import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OA
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SimpleMessenger is OApp, OAppOptionsType3 {
+
+  // State Variables
+
+  // Constructor
+
+  // Quoting Fees function
+
+  // Send function
+
+  // Receive function
 
 }
 ```
@@ -124,7 +134,7 @@ function send(
 }
 ```
 
-### Step 6: Internal Receiving Messages function
+### Step 6: Receive function
 
 Override `_lzReceive()` to handle incoming messages:
 
@@ -155,7 +165,7 @@ function _lzReceive(
 
 ## Compile Your Contract
 
-Before deployment, compile your contract to verify there are no errors:
+Before deployment lets compile your contract.
 
 Compile all contracts
 
@@ -234,8 +244,6 @@ pnpm hardhat verify --network ethereum-sepolia --contract contracts/Oapp/SimpleM
 ```
 
 ### Step 3: Wire Contracts (Configure Cross-Chain Connections)
-
-Note that solana peer configuration requires a custom config file and will require the manual deployment, also the solana Oapp needs to be deployed first as well from a repository that supports solana.
 
 After deployment, contracts need to be "wired" to establish trusted peer relationships and configure messaging parameters.
 

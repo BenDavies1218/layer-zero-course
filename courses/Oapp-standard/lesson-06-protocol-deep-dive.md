@@ -31,13 +31,13 @@ Every cross-chain message is encoded into a packet with the following structure:
 
 ```solidity
 struct Packet {
-    uint64 nonce;        // Unique per sender-receiver-dstEid path
-    uint32 srcEid;       // Source endpoint ID
-    address sender;      // OApp address on source chain
-    uint32 dstEid;       // Destination endpoint ID
-    bytes32 receiver;    // OApp address on destination (bytes32 for non-EVM)
-    bytes32 guid;        // Global unique identifier
-    bytes message;       // Your encoded payload
+  uint64 nonce; // Unique per sender-receiver-dstEid path
+  uint32 srcEid; // Source endpoint ID
+  address sender; // OApp address on source chain
+  uint32 dstEid; // Destination endpoint ID
+  bytes32 receiver; // OApp address on destination (bytes32 for non-EVM)
+  bytes32 guid; // Global unique identifier
+  bytes message; // Your encoded payload
 }
 ```
 
@@ -134,15 +134,17 @@ for (uint8 i = 0; i < requiredDVNCount; i++) {
 ```solidity
 // Each DVN calls ReceiveUln302.verify()
 function verify(
-    bytes calldata _packetHeader,
-    bytes32 _payloadHash,
-    uint64 _confirmations
+  bytes calldata _packetHeader,
+  bytes32 _payloadHash,
+  uint64 _confirmations
 ) external {
-    // Store witness from this DVN
-    hashLookup[headerHash][payloadHash][msg.sender] =
-        Verification(true, confirmations);
+  // Store witness from this DVN
+  hashLookup[headerHash][payloadHash][msg.sender] = Verification(
+    true,
+    confirmations
+  );
 
-    emit PayloadVerified(msg.sender, _packetHeader, confirmations, payloadHash);
+  emit PayloadVerified(msg.sender, _packetHeader, confirmations, payloadHash);
 }
 ```
 
@@ -151,17 +153,17 @@ function verify(
 ```solidity
 // After required DVNs + optional threshold met
 function commitVerification(
-    bytes calldata _packetHeader,
-    bytes32 _payloadHash
+  bytes calldata _packetHeader,
+  bytes32 _payloadHash
 ) external {
-    // Check all required DVNs have verified
-    require(allRequiredDVNsVerified(), "Not all DVNs verified");
+  // Check all required DVNs have verified
+  require(allRequiredDVNsVerified(), "Not all DVNs verified");
 
-    // Check optional DVN threshold met
-    require(optionalDVNThresholdMet(), "Threshold not met");
+  // Check optional DVN threshold met
+  require(optionalDVNThresholdMet(), "Threshold not met");
 
-    // Call Endpoint to insert into message channel
-    EndpointV2.verify(origin, receiver, payloadHash);
+  // Call Endpoint to insert into message channel
+  EndpointV2.verify(origin, receiver, payloadHash);
 }
 ```
 
@@ -188,21 +190,31 @@ inboundPayloadHash[receiver][srcEid][sender][nonce] = payloadHash;
 
 ```solidity
 function lzReceive(
-    Origin calldata _origin,
-    address _receiver,
-    bytes32 _guid,
-    bytes calldata _message,
-    bytes calldata _extraData
+  Origin calldata _origin,
+  address _receiver,
+  bytes32 _guid,
+  bytes calldata _message,
+  bytes calldata _extraData
 ) external payable {
-    // 1. Clear payload (prevent double execution)
-    _clearPayload(_receiver, _origin.srcEid, _origin.sender, _origin.nonce, payload);
+  // 1. Clear payload (prevent double execution)
+  _clearPayload(
+    _receiver,
+    _origin.srcEid,
+    _origin.sender,
+    _origin.nonce,
+    payload
+  );
 
-    // 2. Call receiver's lzReceive
-    ILayerZeroReceiver(_receiver).lzReceive{value: msg.value}(
-        _origin, _guid, _message, msg.sender, _extraData
-    );
+  // 2. Call receiver's lzReceive
+  ILayerZeroReceiver(_receiver).lzReceive{ value: msg.value }(
+    _origin,
+    _guid,
+    _message,
+    msg.sender,
+    _extraData
+  );
 
-    emit PacketDelivered(_origin, _receiver);
+  emit PacketDelivered(_origin, _receiver);
 }
 ```
 
@@ -305,8 +317,8 @@ This configuration means:
 
 ```solidity
 struct ExecutorConfig {
-    uint32 maxMessageSize;    // Max bytes for message
-    address executor;         // Executor address
+  uint32 maxMessageSize; // Max bytes for message
+  address executor; // Executor address
 }
 
 // Default: 10,000 bytes max message size
@@ -340,8 +352,10 @@ finalOptions = combineOptions(dstEid, msgType, callerOptions);
 
 ```solidity
 // OApp must allow path initialization
-function allowInitializePath(Origin calldata origin) public view returns (bool) {
-    return peers[origin.srcEid] == origin.sender;
+function allowInitializePath(
+  Origin calldata origin
+) public view returns (bool) {
+  return peers[origin.srcEid] == origin.sender;
 }
 ```
 
@@ -427,7 +441,7 @@ The Executor may have failed due to insufficient gas. Check your enforced option
 
 Now that you understand the protocol internals, you're ready to:
 
-- **Lesson 08**: Complete the Challenges to test your knowledge
+- **Lesson 07**: [Complete the challenges](./lesson-07-challenges.md)
 
 ## Resources
 
